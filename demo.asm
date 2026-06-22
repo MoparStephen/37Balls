@@ -1,4 +1,4 @@
- ; .loadsym "\out\.lab" PUT PATH OF .LAB FILE HERE, USE THIS WITH ALTIRRA EMULATOR
+ ; .loadsym "C:\Users\Stephen\source\repos\My Atari 8-bit code\37Balls\out\demo.lab"
  
 ;-----------------------------------------------------------------------------
 ; Memory Map
@@ -64,9 +64,9 @@
 .def	Blt_Ctrl						= $14
 
 ; Temp debug stuff
-.def	V_0								= $10	; 0 (Screen code used for Version in loading screen)
-.def	V_1								= $16	; 6 (Screen code used for Version in loading screen)
-.def	V_2								= $11	; 1 (Screen code used for Version in loading screen)
+.def	V_0								= $11	; 1 (Screen code used for Version in loading screen)
+.def	V_1								= $10	; 0 (Screen code used for Version in loading screen)
+.def	V_2								= $10	; 0 (Screen code used for Version in loading screen)
 .def	V_3								= $00	; 61=a (Screen code used for Version in loading screen)
 
 ;-----------------------------------------------------------------------------

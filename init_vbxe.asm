@@ -2,7 +2,7 @@
 ; Initialization
 ;-----------------------------------------------------------------------------
 ; Step $01 - Clear screen and print initial loading screen
-	org LOAD_ADDRESS
+	org LOAD_ADDRESS + $200
 .proc Step_1
 ; Save any values that will be changed so they can be restored on exit
 	lda DOSINI
@@ -86,14 +86,32 @@ Print_Loading_L1						; Copy the 1st $100 bytes
 	dey
 	bne Print_Loading_L1
 
-	ldy #$17
+	ldy #$00
 	inc Ptr_Hi
-Print_Loading_L2						; Copy the last $180 bytes
+Print_Loading_L2						; Copy the 2nd $100 bytes
 	lda Step1_Message+$100,y
 	sta (Ptr_Lo),y
 	dey
-	bpl Print_Loading_L2
+	bne Print_Loading_L2
 
+	ldy #$00
+	inc Ptr_Hi
+Print_Loading_L3						; Copy the 3rd $100 bytes
+	lda Step1_Message+$200,y
+	sta (Ptr_Lo),y
+	dey
+	bne Print_Loading_L3
+
+	ldy #<(Device-Step1_Message-1)
+	inc Ptr_Hi
+Print_Loading_L4						; Copy the final partial page
+	lda Step1_Message+$300,y
+	sta (Ptr_Lo),y
+	dey
+	bne Print_Loading_L4
+
+	dec Ptr_Hi
+	dec Ptr_Hi
 	dec Ptr_Hi							; Restore to beginning of screen RAM
 	lda #$CA
 	sta Reg1							; Pointer to screen RAM for progress dots
@@ -110,6 +128,24 @@ Step1_Message							; Internal screen codes
 	.byte $7C,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$7C
 	.byte $41,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$44
 	.byte $7C,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$7C
+	.byte $41,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$44
+Intro_Text
+	.sb $7C,"This demo was inspired by an STE Demo ",$7C
+	.sb $7C," www.youtube.com/watch?v=x1ekLXdo-2c  ",$7C
+	.sb $7C," 24 32x32 objects 320x256x 16 @ 50 Hz ",$7C
+	.sb $7C,"I managed to get quite a bit more!    ",$7C
+	.sb $7C," 37 32x32 objects 320x240x256 @ 50 Hz ",$7C
+	.sb $7C,"Video is 3 hardware layers overlaid:  ",$7C
+	.sb $7C," ANTIC Displays 320*240 monochrome BG ",$7C
+	.sb $7C," VBXE Colour Map : 208 colours for BG ",$7C
+	.sb $7C," VBXE Blits  37 32*32 Sprites @ 50Hz  ",$7C
+	.sb $7C," LZSS Music Player 4 channels @ 50Hz  ",$7C
+	.sb $7C,"                                      ",$7C
+	.sb $7C,"Code  : Stephen (MADS + VS Code)      ",$7C
+	.sb $7C,"Grafix: Stephen (GIMP + Custom Toolz) ",$7C
+	.sb $7C,"Musix : Michal Szpilowski (RMT)       ",$7C
+	.sb $7C,"        Atari LED (c) 2009-2010       ",$7C
+	.sb $7C,"        playlzs16 (c) 2020 DMSC MIT   ",$7C
 	.byte $5A,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$43
 Device
 	dta c"E:",$9B
@@ -117,7 +153,7 @@ Device
 	ini Step_1
 
 ; Step $02 - Ensure RAMTOP is = $C0 and no BASIC cart/ROM is present
-	org LOAD_ADDRESS
+	org LOAD_ADDRESS + $200
 .proc Check_RAMTOP
 ; Disable BASIC
 	lda #$C0							; Check if RAMTOP is already OK
@@ -197,7 +233,7 @@ RAM_Failure_Message_Line2
 	ini Check_RAMTOP
 
 ; Step $03 - Detect the VBXE and print address or Quit if not found
-	org LOAD_ADDRESS
+	org LOAD_ADDRESS + $200
 .proc Detecting_VBXE
 	jsr VBXE_Detect						; VBXE core 1.07 and above detection
 	bcc VBXE_Found						; If found skip the code below
@@ -268,7 +304,7 @@ VBXE_NPresent
 	ini Detecting_VBXE
 
 ; Step $04 - Clear VBXE RAM
-	org LOAD_ADDRESS
+	org LOAD_ADDRESS + $200
 .proc clear_vbxe
 ; Print Clearing_Message - line 3 (y = $79)
 	ldy #$79
@@ -350,7 +386,7 @@ Clearing_Message
 	ini clear_vbxe
 
 ; Step $05 - Load the XDL
-	org LOAD_ADDRESS
+	org LOAD_ADDRESS + $200
 .proc Load_XDL
 	lda	#$1E | MEMAC_GLOBAL_ENABLE		; Bank $1E VBXE Window Enabled
 	vbsta VBXE_MA_BSEL
@@ -395,7 +431,7 @@ XDL_START
 XDL_Length	equ *-XDL_START
 
 ; Step $06 - Load the BCBs
-	org LOAD_ADDRESS
+	org LOAD_ADDRESS + $200
 .proc Load_BCB
 	lda	#$3E | MEMAC_GLOBAL_ENABLE		; Bank $3E VBXE Window Enabled
 	vbsta VBXE_MA_BSEL
@@ -440,7 +476,7 @@ BCB_START
 BLT_Length	equ *-BCB_START
 
 ; Step $07 - Load VBXE Palette #1
-	org LOAD_ADDRESS
+	org LOAD_ADDRESS + $200
 .proc Load_Palette
 	lda	#MEMAC_GLOBAL_DISABLE			; USE CPU address space
 	vbsta VBXE_MA_BSEL
@@ -486,7 +522,7 @@ Palette
 	ini Load_Palette
 
 ; Step $08 - Load the background tiles into CPU RAM @ SCREEN_RAM
-	org LOAD_ADDRESS
+	org LOAD_ADDRESS + $200
 .proc Load_Background
 	rts									; Return controll to loader
 
