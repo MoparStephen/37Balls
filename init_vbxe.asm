@@ -61,10 +61,42 @@ SDX_No
 	mwa #Clear_Screen TextPtr
 	jsr PutLine							; Cheap way to get a channel open to the screen
 
-	lda #$B0							; Dark Green
-	sta COLOR2							; Set playfield
+; Determine and update Video Format
+	lda #$00
+	sta Ptr_Lo
+Wait1
+	lda vcount
+	beq Wait1
+Wait2
+	tay									; Save largest value in Y
+	lda vcount
+	bne Wait2
+; VCount = zero, but we've saved the largest possible in Y
+	cpy #$85 							; NTSC will never get this high
+	bcc NTSC_Detected
+
+PAL_Detected
+	lda #$00
+	sta Video_Flag						; Save for later
+	lda #$A8							; Light Green
+	sta Reg1
+	lda #$A0							; Dark Green
+	sta Reg2
+	jmp Set_Colours
+
+NTSC_Detected
+	lda #$01
+	sta Video_Flag						; Save for later
 	lda #$BA							; Light Green
-	sta COLOR1							; Set text
+	sta Reg1
+	lda #$B0							; Dark Green
+	sta Reg2
+
+Set_Colours
+	lda Reg1							; Dark Green
+	sta COLOR1							; Set playfield
+	lda Reg2							; Light Green
+	sta COLOR2							; Set text
 
 ; Grab the pointer to the top of screen ram
 	lda SAVMSC
@@ -111,6 +143,20 @@ Print_Loading_L4						; Copy the final partial page
 	lda #$CA
 	sta Reg1							; Pointer to screen RAM for progress dots
 
+	lda Video_Flag
+	beq Print_Loading_Done
+; Print NTSC_Warning_Message - line 2 (y = $51)
+	ldy #$51
+	ldx #$00
+NTSC_Warning_Message_L1
+	lda NTSC_Warning_Message,x
+	sta (Ptr_Lo),y
+	inx
+	iny
+	cpx #$26							; Copy $26 characters
+	bne NTSC_Warning_Message_L1
+
+Print_Loading_Done
 	rts									; Return controll to loader
 
 Clear_Screen
@@ -123,7 +169,7 @@ Step1_Message							; Internal screen codes
 	.byte $41,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$44
 	.byte $7C,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$7C
 	.byte $41,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$44
-Intro_Text
+Intro_Text_Message
 	.sb $7C,'This demo was inspired by an STE Demo ',$7C
 	.sb $7C,' www.youtube.com/watch?v=x1ekLXdo-2c  ',$7C
 	.sb $7C,' 24 32x32 objects 320x256x 16 @ 50 Hz ',$7C
@@ -141,6 +187,8 @@ Intro_Text
 	.sb $7C,'        Atari LED (c) 2009-2010       ',$7C
 	.sb $7C,'        DMSC (playlzs16) (c) 2020 MIT ',$7C
 	.byte $5A,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$43
+NTSC_Warning_Message
+	.sb 'NTSC Detected - limiting to 24 sprites'
 Device
 	dta c'E:',$9B
 .endp

@@ -72,6 +72,7 @@ Mus_Bit_Data			equ $A9			; LZSS bit shift register; value 1 = empty, fetch new b
 .var COLOR2_OLD			.byte = $484	; Save COLOR2
 .var SDLSTL_OLD			.byte = $485	; Save the Display List Pointer
 .var SDLSTH_OLD			.byte = $486	; Save the Display List Pointer
+.var Video_Flag			.byte = $487	; PAL = 0, NTSC = 1
 
 ; Sprite struct array in free RAM $5500-$57BF (37 sprites * 11 bytes = 407 bytes)
 Bobs	equ	$5500
@@ -88,7 +89,8 @@ Bobs	equ	$5500
 
 ; Temp debug stuff
 .def	DBG_SINGLE_STEP					= $00	; 00 = False else true
-.def	MAX_SPRITES						= $25
+.def	MAX_SPRITES_PAL					= $25
+.def	MAX_SPRITES_NTSC				= $18
 
 ; Sprite struct field byte offsets for (Ptr_Lo),y indirect access
 .def	Spr_X_Pos_Frac					= $00
@@ -188,7 +190,7 @@ main
 	lda #$00
 	sta Do_Motion
 
-	lda #MAX_SPRITES
+	lda #MAX_SPRITES_PAL
 	sta Num_Sprites
 
 	lda	#0								; Setup VBXE for displaying picture data
@@ -244,9 +246,13 @@ Delay_Start
 	dec Reg1
 	bne Delay_Start
 
-	lda #$25							; Max we can do at 50Hz
-	sta Num_Sprites						; Current Maximum at 50FPS
+	lda Video_Flag
+	beq Set_Do_Motion					; If PAL skip next 2 lines
 
+	lda #MAX_SPRITES_NTSC				; Else limit # of sprites being shown
+	sta Num_Sprites
+
+Set_Do_Motion
 	lda #$01
 	sta Do_Motion						; Allow positions to update when blitting
 
