@@ -680,7 +680,9 @@ Mus_Buffers
 	.ds	256*9							; 2304-byte ring buffer (one 256-byte window per POKEY reg)
 
 Mus_Song_Data
-	ins	'Assets\Atari_Led.lz16'
+	ins	'Assets\Atari_Led_p1.lz16'
+Mus_Loop_Point
+	ins	'Assets\Atari_Led_p2.lz16'
 Mus_Song_End
 
 ; Step $0B - Display final message and wait for key

@@ -793,7 +793,7 @@ Mus_Init_Song
 	ldy	#0
 Mus_Init_Clear
 	jsr	Mus_Get_Byte					; Reads bytes 1-9: initial POKEY register values
-	sta	$D200,x							; Write to POKEY (AUDF1..AUDCTL)
+	sta	AUDF1,x							; Write to POKEY (AUDF1..AUDCTL)
 	sty	mus_chn_copy,x					; Zero copy-length for all channels
 Mus_Init_Cbuf
 	sta	Mus_Buffers+255					; Self-mod: seed last byte of each channel buffer
@@ -811,27 +811,47 @@ Mus_Init_Cbuf
 ; Mus_Play_Frame - Call once per VSYNC to decode and output one music frame
 ;-----------------------------------------------------------------------------
 Mus_Play_Frame
-	; 16-bit >= check: if Mus_Song_Ptr >= Mus_Song_End, loop back to start
+	; 16-bit >= check: if Mus_Song_Ptr >= Mus_Song_End, restart p2 loop section
 	lda	Mus_Song_Ptr+1
 	cmp	#>Mus_Song_End
-	bcc	Mus_Play_Go						; Hi byte below end - still playing
-	bne	Mus_Do_Loop						; Hi byte above end - overshot, reset
+	bcc	Mus_Check_Intro					; Hi byte below end - check intro transition
+	bne	Mus_Do_P2_Restart				; Hi byte above end - overshot, restart p2
 	lda	Mus_Song_Ptr
 	cmp	#<Mus_Song_End
-	bcc	Mus_Play_Go						; Same hi byte, lo byte below end
-Mus_Do_Loop
-	lda	#<(Mus_Song_Data+1)				; Reset song pointer to byte 1 (byte 0 is the chn mask)
+	bcc	Mus_Check_Intro					; Same hi byte, lo byte below end
+Mus_Do_P2_Restart
+	; Restart p2 loop section (called at end of p1 and at end of p2)
+	lda	#<(Mus_Loop_Point+1)			; Skip byte 0 of p2 (channel mask byte)
 	sta	Mus_Song_Ptr
-	lda	#>(Mus_Song_Data+1)
+	lda	#>(Mus_Loop_Point+1)
 	sta	Mus_Song_Ptr+1
 	lda	#>Mus_Buffers
 	sta	Mus_Init_Cbuf+2					; Reset self-mod hi-byte ($69→$60) before re-init
+	lda	#<Mus_Loop_Point				; Switch channel mask source to p2 byte 0
+	sta	Mus_Chn_Mask_Ptr
+	lda	#>Mus_Loop_Point
+	sta	Mus_Chn_Mask_Ptr+1
 	jsr	Mus_Init_Song
+	jmp	Mus_Play_Go
+Mus_Check_Intro
+	; If channel mask already points to p2, skip intro-end check
+	lda	Mus_Chn_Mask_Ptr+1
+	cmp	#>Mus_Song_Data
+	bne	Mus_Play_Go						; Not p1 hi byte: already in p2
+	; Still in p1 - check if Mus_Song_Ptr >= Mus_Loop_Point
+	lda	Mus_Song_Ptr+1
+	cmp	#>Mus_Loop_Point
+	bcc	Mus_Play_Go						; Hi byte below loop point page, still in p1
+	bne	Mus_Do_P2_Restart				; Hi byte above loop point page, transition
+	lda	Mus_Song_Ptr
+	cmp	#<Mus_Loop_Point
+	bcs	Mus_Do_P2_Restart				; At or past loop point, transition to p2
 Mus_Play_Go
 	lda	#>Mus_Buffers
 	sta	mus_bptr+1						; Point buffer pointer at channel 8's 256-byte window
 
-	lda	Mus_Song_Data					; Byte 0: channel-skip bitmask (constant for entire song)
+	lda	Mus_Song_Data					; Byte 0: channel-skip bitmask - addr self-modified after intro
+Mus_Chn_Mask_Ptr	equ	*-2				; 2-byte address operand of LDA above
 	sta	mus_chn_bits
 	ldx	#8
 
