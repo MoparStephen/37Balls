@@ -124,25 +124,25 @@ Step1_Message							; Internal screen codes
 	.byte $7C,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$7C
 	.byte $41,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$44
 Intro_Text
-	.sb $7C,"This demo was inspired by an STE Demo ",$7C
-	.sb $7C," www.youtube.com/watch?v=x1ekLXdo-2c  ",$7C
-	.sb $7C," 24 32x32 objects 320x256x 16 @ 50 Hz ",$7C
-	.sb $7C,"I managed to get quite a bit more!    ",$7C
-	.sb $7C," 37 32x32 objects 320x240x256 @ 50 Hz ",$7C
-	.sb $7C,"Video is 3 hardware layers overlaid:  ",$7C
-	.sb $7C," ANTIC Displays 320*240 monochrome BG ",$7C
-	.sb $7C," VBXE Colour Map : 208 colours for BG ",$7C
-	.sb $7C," VBXE Blits  37 32*32 Sprites @ 50Hz  ",$7C
-	.sb $7C," LZSS Music Player 4 channels @ 50Hz  ",$7C
-	.sb $7C,"                                      ",$7C
-	.sb $7C,"Code  : Stephen (MADS + VS Code)      ",$7C
-	.sb $7C,"Grafix: Stephen (GIMP + Custom Toolz) ",$7C
-	.sb $7C,"Musix : Michal Szpilowski (RMT)       ",$7C
-	.sb $7C,"        Atari LED (c) 2009-2010       ",$7C
-	.sb $7C,"        DMSC (playlzs16) (c) 2020 MIT ",$7C
+	.sb $7C,'This demo was inspired by an STE Demo ',$7C
+	.sb $7C,' www.youtube.com/watch?v=x1ekLXdo-2c  ',$7C
+	.sb $7C,' 24 32x32 objects 320x256x 16 @ 50 Hz ',$7C
+	.sb $7C,'I managed to get quite a bit more!    ',$7C
+	.sb $7C,' 37 32x32 objects 320x240x256 @ 50 Hz ',$7C
+	.sb $7C,'Video is 3 hardware layers overlaid:  ',$7C
+	.sb $7C,' ANTIC Displays 320*240 monochrome BG ',$7C
+	.sb $7C,' VBXE Colour Map : 208 colours for BG ',$7C
+	.sb $7C,' VBXE Blits  37 32*32 Sprites @ 50Hz  ',$7C
+	.sb $7C,' LZSS Music Player 4 channels @ 50Hz  ',$7C
+	.sb $7C,'                                      ',$7C
+	.sb $7C,'Code  : Stephen (MADS + VS Code)      ',$7C
+	.sb $7C,'Grafix: Stephen (GIMP + Custom Toolz) ',$7C
+	.sb $7C,'Musix : Michal Szpilowski (RMT)       ',$7C
+	.sb $7C,'        Atari LED (c) 2009-2010       ',$7C
+	.sb $7C,'        DMSC (playlzs16) (c) 2020 MIT ',$7C
 	.byte $5A,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$43
 Device
-	dta c"E:",$9B
+	dta c'E:',$9B
 .endp
 	ini Step_1
 
@@ -219,9 +219,9 @@ RAM_Failure_Message_L2
 Device_Name
 	dta c'E:', $00
 RAM_Failure_Message_Line1
-	.byte $34,$68,$69,$73,$00,$70,$72,$6F,$67,$72,$61,$6D,$00,$72,$65,$71,$75,$69,$72,$65,$73,$00,$61,$74,$00,$6C,$65,$61,$73,$74,$00,$14,$18,$6B,$22
+	.sb 'This program requires at least 48kB'
 RAM_Failure_Message_Line2
-	.byte $30,$72,$65,$73,$73,$00,$61,$6E,$79,$00,$6B,$65,$79,$00,$74,$6F,$00,$65,$78,$69,$74,$80
+	.sb 'Press any key to exit'
 .endp
 	ini Check_RAMTOP
 
@@ -243,7 +243,7 @@ Print_VBXE_NPresent_L1
 	sta (Ptr_Lo),y
 	inx
 	iny
-	cpx #$21							; Copy $21 characters
+	cpx #$24							; Copy $24 characters
 	bne Print_VBXE_NPresent_L1
 
 	jsr Wait_For_Key_Exit
@@ -285,11 +285,11 @@ Print_VBXE_Detected_L1
 	rts									; Return controll to loader
 
 VBXE_Detected
-	.byte $36,$22,$38,$25,$00,$24,$65,$74,$65,$63,$74,$65,$64,$00,$61,$74,$00	; VBXE Detected at
+	.sb 'VBXE Detected at '
 VBXE_Address
-	.byte $04,$24,$16,$14,$10,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00	; $D640
+	.sb '$D640            '
 VBXE_NPresent
-	.byte $01,$00,$36,$22,$38,$25,$00,$6E,$6F,$74,$00,$66,$6F,$75,$6E,$64,$00,$0D,$00,$61,$6E,$79,$00,$6B,$65,$79,$00,$31,$75,$69,$74,$00,$01,$00	; ! VBXE not found - any key Quit !
+	.sb '  ! VBXE not found - any key Quit ! '
 
 .endp
 	ini Detecting_VBXE
@@ -369,7 +369,7 @@ blit_clear
 
 	dta e($00000), a($0000), 0, e($7BFFF), a(-$0F80), -1, a($01EF), $0F, $00, $00, $00, $77, $00, $00
 Clearing_Message
-	.byte $23,$6C,$65,$61,$72,$69,$6E,$67,$00,$36,$22,$38,$25,$00,$32,$21,$2D,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00	; Clearing VBXE RAM
+	.sb 'Clearing VBXE RAM                '
 
 .endp
 	ini clear_vbxe
@@ -407,7 +407,7 @@ Print_Load_XDL_Message_L1
 	rts									; Return controll to loader
 
 Load_XDL_Message
-	.byte $2C,$6F,$61,$64,$69,$6E,$67,$00,$38,$24,$2C,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00	; Loading XDLs
+	.sb 'Loading xdl.asm                 '
 
 .endp
 	ini Load_XDL
@@ -450,7 +450,7 @@ Print_Load_BCB_Message_L1
 	rts									; Return controll to loader
 
 Load_BCB_Message
-	.byte $2C,$6F,$61,$64,$69,$6E,$67,$00,$22,$23,$22,$73,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00	; Loading BCBs
+	.sb 'Loading bcbs.asm                '
 
 .endp
 	ini Load_BCB
@@ -497,7 +497,7 @@ Print_Load_Palette_Message_L1
 	rts									; Return controll to loader
 
 Load_Palette_Message
-	.byte $2C,$6F,$61,$64,$69,$6E,$67,$00,$36,$22,$38,$25,$00,$30,$61,$6C,$65,$74,$74,$65,$00,$12,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00	; Loading VBXE Palette 2
+	.sb 'Loading Palette.pal             '
 Palette
 	ins 'Assets\Palette.pal'
 
@@ -537,7 +537,7 @@ Print_Load_Ball_Message_L1
 	rts									; Return controll to loader
 
 Load_Ball_Message
-	.sb "Loading Ball32.raw               "
+	.sb 'Loading Ball32.raw               '
 
 .endp
 	ini Load_Ball
@@ -577,7 +577,7 @@ Load_Background_Message_L1
 	rts									; Return controll to loader
 
 Load_Background_Message
-	.byte $2C,$6F,$61,$64,$69,$6E,$67,$00,$29,$6D,$61,$67,$65,$00,$24,$61,$74,$61,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00	; Loading Image
+	.sb 'Loading Fuji_Mono.raw           '
 
 .endp
 	ini Load_Background
@@ -617,7 +617,7 @@ Load_Music_Message_L1
 	rts									; Return controll to loader
 
 Load_Music_Message
-	.sb "Loading Atari_Led.lz16           "
+	.sb 'Loading Atari_Led.lz16          '
 
 .endp
 	ini Load_Music
@@ -674,6 +674,6 @@ Wait_For_Key_Exit_L1
 	rts									; Return controll to loader
 
 Wait_Key_Message
-	.sb "Press any key to start the demo  "
+	.sb 'Press any key to start the demo  '
 .endp
 	ini Load_Background
