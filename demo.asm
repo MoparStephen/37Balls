@@ -2,9 +2,6 @@
 ;-----------------------------------------------------------------------------
 ; Memory Map
 ;-----------------------------------------------------------------------------
-; Load Address = 
-; Run Address = 
- 
 ; VBXE RAM Usage ($80 banks, 4kB each)
 ; MEMAC_A is set to $2000, with a 4kB window, CPU only
 
@@ -68,17 +65,13 @@ Mus_Bit_Data			equ $A9			; LZSS bit shift register; value 1 = empty, fetch new b
 ;	$480 to $4FF free
 ;	$600 to $6FF free
 ; When using PMG the 1st $300 bytes are always free
-.var Frame				.byte = $480
-.var Scroll				.byte = $481
-.var SDMCTL_OLD			.byte = $482	; Save DMA
-.var CRSINH_OLD			.byte = $483	; Save CRSINH (Mouse Pointer)
-.var LMARGIN_OLD		.byte = $484	; Save LMARGIN
-.var COLOR2_OLD			.byte = $485	; Save COLOR2
-.var SP_REG_OLD			.byte = $486	; Save the Stack Pointer
-.var SDLSTL_OLD			.byte = $487	; Save the Display List Pointer
-.var SDLSTH_OLD			.byte = $488	; Save the Display List Pointer
-.var DOSINIL_OLD		.byte = $489	; Save the DOSINI Pointer
-.var DOSINIH_OLD		.byte = $48A	; Save the DOSINI Pointer
+.var SDMCTL_OLD			.byte = $480	; Save DMA
+.var CRSINH_OLD			.byte = $481	; Save CRSINH (Mouse Pointer)
+.var LMARGIN_OLD		.byte = $482	; Save LMARGIN
+.var COLOR1_OLD			.byte = $483	; Save COLOR1
+.var COLOR2_OLD			.byte = $484	; Save COLOR2
+.var SDLSTL_OLD			.byte = $485	; Save the Display List Pointer
+.var SDLSTH_OLD			.byte = $486	; Save the Display List Pointer
 
 ; Sprite struct array in free RAM $5500-$57BF (37 sprites * 11 bytes = 407 bytes)
 Bobs	equ	$5500
@@ -95,7 +88,6 @@ Bobs	equ	$5500
 
 ; Temp debug stuff
 .def	DBG_SINGLE_STEP					= $00	; 00 = False else true
-.def	MIN_SPRITES						= $01
 .def	MAX_SPRITES						= $25
 
 ; Sprite struct field byte offsets for (Ptr_Lo),y indirect access
@@ -131,7 +123,7 @@ Bobs	equ	$5500
 ; VBXE Helpers
 ;-----------------------------------------------------------------------------
 	org LOAD_ADDRESS
-.pages 2								; DO NOT go past $3200
+.pages 3								; DO NOT go past $3300
 	icl	'fileio.lib'
 	icl	'vbxe_min.asm'					; Use my VBXE_SetPalette2 to load linear palete
 
@@ -139,20 +131,35 @@ Bobs	equ	$5500
 ; Clean up and exit based on LoadStatus
 ;-----------------------------------------------------------------------------
 Cleanup_Exit
+	lda #$00							; Don't display anything during exit
+	sta SDMCTL
+	sta COLOR1
+	bit VCOUNT							; Wait for VSYNC so screen turns off
+	bmi *-3
+	bit	VCOUNT
+	bpl *-3
+
 	lda	#MEMAC_GLOBAL_DISABLE			; USE CPU address space
 	sta VBXE_MA_BSEL
 	sta VBXE_VIDEO_CONTROL				; Disable XDL
 
-	; lda SDMCTL_OLD
-	; sta SDMCTL							; Restore SDMCTL
+	lda CRSINH_OLD
+	sta CRSINH							; Restore CRSINH
 
-	; lda LMARGIN_OLD
-	; sta LMARGIN							; Restore LMARGIN
+	lda LMARGIN_OLD
+	sta LMARGIN							; Restore LMARGIN
 
-	; lda DOSINIL_OLD
-	; sta DOSINI
-	; lda DOSINIH_OLD
-	; sta DOSINI + 1						; Restore DOSINI
+	lda COLOR1_OLD
+	sta COLOR1							; Restore COLOR1
+
+	lda COLOR2_OLD
+	sta COLOR2							; Restore COLOR2
+
+	lda SDLSTL_OLD
+	sta SDLSTL							; Restore SDLSTL
+
+	lda SDLSTH_OLD
+	sta SDLSTL+1						; Restore SDLSTH
 
 	lda #$FF
 	sta CH								; Clear last key pressed
@@ -172,7 +179,7 @@ Wait_For_Key_Exit_L1
 ; Multi-stage loader & program initialization code begins here
 	icl 'init_vbxe.asm'
 
-	org LOAD_ADDRESS + $200				; Libraries live above
+	org LOAD_ADDRESS + $300				; Libraries live above
 
 ;-----------------------------------------------------------------------------
 ; Main loop
@@ -1025,20 +1032,6 @@ Display_List							; 16 * 15 = 240 lines
 	.byte <Display_List
 	.byte >Display_List
 Display_List_Length	equ *-Display_List
-
-;-----------------------------------------------------------------------------
-; Music player buffers and compressed song data
-; Buffers: 9 channels × 256 bytes = 2304 bytes ($6000-$68FF)
-; Song:    Atari_Led.lz16 follows immediately at $6900
-;-----------------------------------------------------------------------------
-	org $6000
-Mus_Buffers
-	.ds	256*9							; 2304-byte ring buffer (one 256-byte window per POKEY reg)
-
-Mus_Song_Data
-	ins	'Assets\Atari_Led.lz16'
-Mus_Song_End
-
 
 ; ---
 	run main

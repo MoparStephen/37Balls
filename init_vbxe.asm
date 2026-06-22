@@ -2,14 +2,9 @@
 ; Initialization
 ;-----------------------------------------------------------------------------
 ; Step $01 - Clear screen and print initial loading screen
-	org LOAD_ADDRESS + $200
+	org LOAD_ADDRESS + $300
 .proc Step_1
 ; Save any values that will be changed so they can be restored on exit
-	lda DOSINI
-	sta DOSINIL_OLD
-	lda DOSINI + 1
-	sta DOSINIH_OLD						; Save DOSINI so we can restore it later
-
 	lda SDMCTL
 	sta SDMCTL_OLD						; Save SDMCTL so we can restore it later
 
@@ -19,17 +14,17 @@
 	lda LMARGIN
 	sta LMARGIN_OLD						; Save LMARGIN so we can restore it later
 
+	lda COLOR1
+	sta COLOR1_OLD						; Save COLOR1 so we can restore it later
+
 	lda COLOR2
 	sta COLOR2_OLD						; Save COLOR2 so we can restore it later
 
-	tsx									; X now holds the SP
-	stx SP_REG_OLD						; Save SP so we can restore it later
-
 	lda SDLSTL
-	sta SDLSTL_OLD
+	sta SDLSTL_OLD						; Save SDLSTL so we can restore it later
 
 	lda SDLSTL+1
-	sta SDLSTH_OLD
+	sta SDLSTH_OLD						; Save SDLSTH so we can restore it later
 
 ; Check for SDX
 Check_SDX
@@ -152,7 +147,7 @@ Device
 	ini Step_1
 
 ; Step $02 - Ensure RAMTOP is = $C0 and no BASIC cart/ROM is present
-	org LOAD_ADDRESS + $200
+	org LOAD_ADDRESS + $300
 .proc Check_RAMTOP
 ; Disable BASIC
 	lda #$C0							; Check if RAMTOP is already OK
@@ -231,7 +226,7 @@ RAM_Failure_Message_Line2
 	ini Check_RAMTOP
 
 ; Step $03 - Detect the VBXE and print address or Quit if not found
-	org LOAD_ADDRESS + $200
+	org LOAD_ADDRESS + $300
 .proc Detecting_VBXE
 	jsr VBXE_Detect						; VBXE core 1.07 and above detection
 	bcc VBXE_Found						; If found skip the code below
@@ -300,7 +295,7 @@ VBXE_NPresent
 	ini Detecting_VBXE
 
 ; Step $04 - Clear VBXE RAM
-	org LOAD_ADDRESS + $200
+	org LOAD_ADDRESS + $300
 .proc clear_vbxe
 ; Print Clearing_Message - line 3 (y = $79)
 	ldy #$79
@@ -380,7 +375,7 @@ Clearing_Message
 	ini clear_vbxe
 
 ; Step $05 - Load the XDL
-	org LOAD_ADDRESS + $200
+	org LOAD_ADDRESS + $300
 .proc Load_XDL
 	lda	#$00 | MEMAC_GLOBAL_ENABLE		; Bank $00 VBXE Window Enabled
 	vbsta VBXE_MA_BSEL
@@ -423,7 +418,7 @@ XDL_START
 XDL_Length	equ *-XDL_START
 
 ; Step $06 - Load the BCBs
-	org LOAD_ADDRESS + $200
+	org LOAD_ADDRESS + $300
 .proc Load_BCB
 	lda	#$00 | MEMAC_GLOBAL_ENABLE		; Bank $00 VBXE Window Enabled
 	vbsta VBXE_MA_BSEL
@@ -466,7 +461,7 @@ BCB_START
 BLT_Length	equ *-BCB_START
 
 ; Step $07 - Load VBXE Palette #1
-	org LOAD_ADDRESS + $200
+	org LOAD_ADDRESS + $300
 .proc Load_Palette
 	lda	#MEMAC_GLOBAL_DISABLE			; USE CPU address space
 	vbsta VBXE_MA_BSEL
@@ -510,7 +505,7 @@ Palette
 	ini Load_Palette
 
 ; Step $08 - Load Ball Graphics into VBXE
-	org LOAD_ADDRESS + $200
+	org LOAD_ADDRESS + $300
 .proc Load_Ball
 	lda	#$10 | MEMAC_GLOBAL_ENABLE		; Bank $10 VBXE Window Enabled
 	vbsta VBXE_MA_BSEL
@@ -523,7 +518,7 @@ Print_Load_Ball_Message_L1
 	sta (Ptr_Lo),y
 	inx
 	iny
-	cpx #$22							; Copy $22 characters
+	cpx #$21							; Copy $21 characters
 	bne Print_Load_Ball_Message_L1
 
 ; Update Progress bar - line 5 (y = $CB + (4 * increment #))
@@ -542,7 +537,7 @@ Print_Load_Ball_Message_L1
 	rts									; Return controll to loader
 
 Load_Ball_Message
-	.sb "Loading Ball32.raw                "
+	.sb "Loading Ball32.raw               "
 
 .endp
 	ini Load_Ball
@@ -552,7 +547,7 @@ Ball
 	ins 'Assets\Ball32.raw'
 
 ; Step $09 - Load the background tiles into CPU RAM @ SCREEN_RAM
-	org LOAD_ADDRESS + $200
+	org LOAD_ADDRESS + $300
 .proc Load_Background
 
 ; Print Load_Background_Message - line 3 (y = $79)
@@ -591,8 +586,57 @@ Load_Background_Message
 FujiGraphics_Mono
 	ins 'Assets\Fuji_Mono.raw'			; $520 bytes
 
-; Step $0A - Display final message and wait for key
-	org LOAD_ADDRESS + $200
+; Step $0A - Load the music into CPU RAM @ $6000
+	org LOAD_ADDRESS + $300
+.proc Load_Music
+
+; Print Load_Music_Message - line 3 (y = $79)
+	ldy #$79
+	ldx #$00
+Load_Music_Message_L1
+	lda Load_Music_Message,x
+	sta (Ptr_Lo),y
+	inx
+	iny
+	cpx #$21							; Copy $21 characters
+	bne Load_Music_Message_L1
+
+; Update Progress bar - line 5 (y = $CB + (4 * increment #))
+	ldy Reg1
+	lda #$54							; Screen RAM code for Ctrl+T
+	sta (Ptr_Lo),y
+	iny
+	sta (Ptr_Lo),y
+	iny
+	sta (Ptr_Lo),y
+	iny
+	sta (Ptr_Lo),y
+	iny
+	sty Reg1							; Save pointer for progress bar updates
+
+	rts									; Return controll to loader
+
+Load_Music_Message
+	.sb "Loading Atari_Led.lz16           "
+
+.endp
+	ini Load_Music
+
+;-----------------------------------------------------------------------------
+; Music player buffers and compressed song data
+; Buffers: 9 channels × 256 bytes = 2304 bytes ($6000-$68FF)
+; Song:    Atari_Led.lz16 follows immediately at $6900
+;-----------------------------------------------------------------------------
+	org $6000
+Mus_Buffers
+	.ds	256*9							; 2304-byte ring buffer (one 256-byte window per POKEY reg)
+
+Mus_Song_Data
+	ins	'Assets\Atari_Led.lz16'
+Mus_Song_End
+
+; Step $0B - Display final message and wait for key
+	org LOAD_ADDRESS + $300
 .proc Wait_Key
 
 ; Print Load_Palette_Message - line 3 (y = $79)
@@ -603,7 +647,7 @@ Wait_Key_Message_L1
 	sta (Ptr_Lo),y
 	inx
 	iny
-	cpx #$22							; Copy $22 characters
+	cpx #$21							; Copy $21 characters
 	bne Wait_Key_Message_L1
 
 ; Update Progress bar - line 5 (y = $CB + (4 * increment #))
@@ -630,6 +674,6 @@ Wait_For_Key_Exit_L1
 	rts									; Return controll to loader
 
 Wait_Key_Message
-	.sb "Press any key to start the demo   "
+	.sb "Press any key to start the demo  "
 .endp
 	ini Load_Background
