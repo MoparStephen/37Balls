@@ -116,7 +116,6 @@ Print_Loading_L4						; Copy the final partial page
 	lda #$CA
 	sta Reg1							; Pointer to screen RAM for progress dots
 
-	; jsr Wait_For_Key_Exit
 	rts									; Return controll to loader
 
 Clear_Screen
@@ -145,7 +144,7 @@ Intro_Text
 	.sb $7C,"Grafix: Stephen (GIMP + Custom Toolz) ",$7C
 	.sb $7C,"Musix : Michal Szpilowski (RMT)       ",$7C
 	.sb $7C,"        Atari LED (c) 2009-2010       ",$7C
-	.sb $7C,"        playlzs16 (c) 2020 DMSC MIT   ",$7C
+	.sb $7C,"        DMSC (playlzs16) (c) 2020 MIT ",$7C
 	.byte $5A,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$43
 Device
 	dta c"E:",$9B
@@ -190,7 +189,6 @@ Do_CIOV
 	jsr CIOV
 
 Ram_Ok
-	; jsr Wait_For_Key_Exit
 	rts
 
 Ram_Not_Ok; Add your error handling here, there still is a ROM....
@@ -289,8 +287,6 @@ Print_VBXE_Detected_L1
 	iny
 	sty Reg1							; Save pointer for progress bar updates
 
-	; jsr Wait_For_Key_Exit
-
 	rts									; Return controll to loader
 
 VBXE_Detected
@@ -329,8 +325,6 @@ Print_Clearing_Message_L1
 	sta (Ptr_Lo),y
 	iny
 	sty Reg1							; Save pointer for progress bar updates
-
-	; jsr Wait_For_Key_Exit
 
 ; Set the base address of MEMA window to VBXE_WINDOW
 ; Size to 4k and accesible only by CPU
@@ -388,7 +382,7 @@ Clearing_Message
 ; Step $05 - Load the XDL
 	org LOAD_ADDRESS + $200
 .proc Load_XDL
-	lda	#$1E | MEMAC_GLOBAL_ENABLE		; Bank $1E VBXE Window Enabled
+	lda	#$00 | MEMAC_GLOBAL_ENABLE		; Bank $00 VBXE Window Enabled
 	vbsta VBXE_MA_BSEL
 
 ; Print Load_XDL_Message - line 3 (y = $79)
@@ -415,8 +409,6 @@ Print_Load_XDL_Message_L1
 	iny
 	sty Reg1							; Save pointer for progress bar updates
 
-	; jsr Wait_For_Key_Exit
-
 	rts									; Return controll to loader
 
 Load_XDL_Message
@@ -425,7 +417,7 @@ Load_XDL_Message
 .endp
 	ini Load_XDL
 
-	org VBXE_WINDOW						; Load data directly into VBXE RAM
+	org VBXE_WINDOW + $400				; Load data directly into VBXE RAM
 XDL_START
 	icl 'xdl.asm'
 XDL_Length	equ *-XDL_START
@@ -433,7 +425,7 @@ XDL_Length	equ *-XDL_START
 ; Step $06 - Load the BCBs
 	org LOAD_ADDRESS + $200
 .proc Load_BCB
-	lda	#$3E | MEMAC_GLOBAL_ENABLE		; Bank $3E VBXE Window Enabled
+	lda	#$00 | MEMAC_GLOBAL_ENABLE		; Bank $00 VBXE Window Enabled
 	vbsta VBXE_MA_BSEL
 
 ; Print Load_BCB_Message - line 3 (y = $79)
@@ -460,8 +452,6 @@ Print_Load_BCB_Message_L1
 	iny
 	sty Reg1							; Save pointer for progress bar updates
 
-	; jsr Wait_For_Key_Exit
-
 	rts									; Return controll to loader
 
 Load_BCB_Message
@@ -470,7 +460,7 @@ Load_BCB_Message
 .endp
 	ini Load_BCB
 
-	org VBXE_WINDOW						; Load data directly into VBXE RAM
+	org VBXE_WINDOW + $500				; Load data directly into VBXE RAM
 BCB_START
 	icl 'bcbs.asm'
 BLT_Length	equ *-BCB_START
@@ -505,8 +495,6 @@ Print_Load_Palette_Message_L1
 	iny
 	sty Reg1							; Save pointer for progress bar updates
 
-	; jsr Wait_For_Key_Exit
-
 	mwa #Palette Y_Register
 	lda #$01							; Set Palette 1
 	jsr VBXE_SetPalette2
@@ -521,12 +509,79 @@ Palette
 .endp
 	ini Load_Palette
 
-; Step $08 - Load the background tiles into CPU RAM @ SCREEN_RAM
+; Step $08 - Load Ball Graphics into VBXE
 	org LOAD_ADDRESS + $200
-.proc Load_Background
+.proc Load_Ball
+	lda	#$10 | MEMAC_GLOBAL_ENABLE		; Bank $10 VBXE Window Enabled
+	vbsta VBXE_MA_BSEL
+
+; Print Load_Ball_Message - line 3 (y = $79)
+	ldy #$79
+	ldx #$00
+Print_Load_Ball_Message_L1
+	lda Load_Ball_Message,x
+	sta (Ptr_Lo),y
+	inx
+	iny
+	cpx #$22							; Copy $22 characters
+	bne Print_Load_Ball_Message_L1
+
+; Update Progress bar - line 5 (y = $CB + (4 * increment #))
+	ldy Reg1
+	lda #$54							; Screen RAM code for Ctrl+T
+	sta (Ptr_Lo),y
+	iny
+	sta (Ptr_Lo),y
+	iny
+	sta (Ptr_Lo),y
+	iny
+	sta (Ptr_Lo),y
+	iny
+	sty Reg1							; Save pointer for progress bar updates
+
 	rts									; Return controll to loader
 
-Load_Background_1_Message
+Load_Ball_Message
+	.sb "Loading Ball32.raw                "
+
+.endp
+	ini Load_Ball
+
+	org VBXE_WINDOW						; Load data directly into VBXE RAM
+Ball
+	ins 'Assets\Ball32.raw'
+
+; Step $09 - Load the background tiles into CPU RAM @ SCREEN_RAM
+	org LOAD_ADDRESS + $200
+.proc Load_Background
+
+; Print Load_Background_Message - line 3 (y = $79)
+	ldy #$79
+	ldx #$00
+Load_Background_Message_L1
+	lda Load_Background_Message,x
+	sta (Ptr_Lo),y
+	inx
+	iny
+	cpx #$21							; Copy $21 characters
+	bne Load_Background_Message_L1
+
+; Update Progress bar - line 5 (y = $CB + (4 * increment #))
+	ldy Reg1
+	lda #$54							; Screen RAM code for Ctrl+T
+	sta (Ptr_Lo),y
+	iny
+	sta (Ptr_Lo),y
+	iny
+	sta (Ptr_Lo),y
+	iny
+	sta (Ptr_Lo),y
+	iny
+	sty Reg1							; Save pointer for progress bar updates
+
+	rts									; Return controll to loader
+
+Load_Background_Message
 	.byte $2C,$6F,$61,$64,$69,$6E,$67,$00,$29,$6D,$61,$67,$65,$00,$24,$61,$74,$61,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00	; Loading Image
 
 .endp
@@ -535,3 +590,46 @@ Load_Background_1_Message
 	org SCREEN_RAM						; Load data directly into CPU RAM
 FujiGraphics_Mono
 	ins 'Assets\Fuji_Mono.raw'			; $520 bytes
+
+; Step $0A - Display final message and wait for key
+	org LOAD_ADDRESS + $200
+.proc Wait_Key
+
+; Print Load_Palette_Message - line 3 (y = $79)
+	ldy #$79
+	ldx #$00
+Wait_Key_Message_L1
+	lda Wait_Key_Message,x
+	sta (Ptr_Lo),y
+	inx
+	iny
+	cpx #$22							; Copy $22 characters
+	bne Wait_Key_Message_L1
+
+; Update Progress bar - line 5 (y = $CB + (4 * increment #))
+	ldy Reg1
+	lda #$54							; Screen RAM code for Ctrl+T
+	sta (Ptr_Lo),y
+	iny
+	sta (Ptr_Lo),y
+	iny
+	sta (Ptr_Lo),y
+	iny
+	sta (Ptr_Lo),y
+	iny
+	sty Reg1							; Save pointer for progress bar updates
+
+Wait_For_Key_Exit
+	lda #$FF
+	sta CH								; Clear last key pressed
+Wait_For_Key_Exit_L1
+	lda CH
+	cmp #$FF
+	beq Wait_For_Key_Exit_L1			; Wait for Key Press
+
+	rts									; Return controll to loader
+
+Wait_Key_Message
+	.sb "Press any key to start the demo   "
+.endp
+	ini Load_Background
