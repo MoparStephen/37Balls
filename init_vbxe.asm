@@ -407,7 +407,7 @@ Print_Load_XDL_Message_L1
 	rts									; Return controll to loader
 
 Load_XDL_Message
-	.sb 'Loading xdl.asm                 '
+	.sb 'Loading xdl.asm                  '
 
 .endp
 	ini Load_XDL
@@ -450,7 +450,7 @@ Print_Load_BCB_Message_L1
 	rts									; Return controll to loader
 
 Load_BCB_Message
-	.sb 'Loading bcbs.asm                '
+	.sb 'Loading bcbs.asm                 '
 
 .endp
 	ini Load_BCB
