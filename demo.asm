@@ -266,6 +266,7 @@ main
 	sta Reg1
 
 Delay_Start
+	jsr music.play						; Play a frame of music
 	jsr Wait_For_Sync
 	dec Reg1
 	bne Delay_Start
