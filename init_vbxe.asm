@@ -356,9 +356,11 @@ Print_Clearing_Message_L1
 	cpx #$21							; Copy $21 characters
 	bne Print_Clearing_Message_L1
 
-; Update Progress bar - line 5 (y = $CB + (4 * increment #))
+; Update Progress bar - line 5 (y = $CB + (5 * increment #))
 	ldy Reg1
 	lda #$54							; Screen RAM code for Ctrl+T
+	sta (Ptr_Lo),y
+	iny
 	sta (Ptr_Lo),y
 	iny
 	sta (Ptr_Lo),y
@@ -482,9 +484,11 @@ Print_Load_BCB_Message_L1
 	cpx #$21							; Copy $21 characters
 	bne Print_Load_BCB_Message_L1
 
-; Update Progress bar - line 5 (y = $CB + (4 * increment #))
+; Update Progress bar - line 5 (y = $CB + (5 * increment #))
 	ldy Reg1
 	lda #$54							; Screen RAM code for Ctrl+T
+	sta (Ptr_Lo),y
+	iny
 	sta (Ptr_Lo),y
 	iny
 	sta (Ptr_Lo),y
@@ -569,9 +573,11 @@ Print_Load_Ball_Message_L1
 	cpx #$21							; Copy $21 characters
 	bne Print_Load_Ball_Message_L1
 
-; Update Progress bar - line 5 (y = $CB + (4 * increment #))
+; Update Progress bar - line 5 (y = $CB + (5 * increment #))
 	ldy Reg1
 	lda #$54							; Screen RAM code for Ctrl+T
+	sta (Ptr_Lo),y
+	iny
 	sta (Ptr_Lo),y
 	iny
 	sta (Ptr_Lo),y
@@ -634,60 +640,7 @@ Load_Background_Message
 FujiGraphics_Mono
 	ins 'Assets\Fuji_Mono.raw'			; $520 bytes
 
-/*
-; Step $0A - Load the music into CPU RAM @ $6000
-	org LOAD_ADDRESS + $300
-.proc Load_Music
-
-; Print Load_Music_Message - line 3 (y = $79)
-	ldy #$79
-	ldx #$00
-Load_Music_Message_L1
-	lda Load_Music_Message,x
-	sta (Ptr_Lo),y
-	inx
-	iny
-	cpx #$21							; Copy $21 characters
-	bne Load_Music_Message_L1
-
-; Update Progress bar - line 5 (y = $CB + (4 * increment #))
-	ldy Reg1
-	lda #$54							; Screen RAM code for Ctrl+T
-	sta (Ptr_Lo),y
-	iny
-	sta (Ptr_Lo),y
-	iny
-	sta (Ptr_Lo),y
-	iny
-	sta (Ptr_Lo),y
-	iny
-	sty Reg1							; Save pointer for progress bar updates
-
-	rts									; Return controll to loader
-
-Load_Music_Message
-	.sb 'Loading Atari_Led.lz16          '
-
-.endp
-	ini Load_Music
-
-;-----------------------------------------------------------------------------
-; Music player buffers and compressed song data
-; Buffers: 9 channels × 256 bytes = 2304 bytes ($6000-$68FF)
-; Song:    Atari_Led.lz16 follows immediately at $6900
-;-----------------------------------------------------------------------------
-	org $6000
-Mus_Buffers
-	.ds	256*9							; 2304-byte ring buffer (one 256-byte window per POKEY reg)
-
-Mus_Song_Data
-	ins	'Assets\Atari_Led_p1.lz16'
-Mus_Loop_Point
-	ins	'Assets\Atari_Led_p2.lz16'
-Mus_Song_End
-*/
-
-; Step $0B - Display final message and wait for key
+; Step $0A - Display final message and wait for key
 	org LOAD_ADDRESS + $300
 .proc Wait_Key
 
@@ -702,9 +655,11 @@ Wait_Key_Message_L1
 	cpx #$21							; Copy $21 characters
 	bne Wait_Key_Message_L1
 
-; Update Progress bar - line 5 (y = $CB + (4 * increment #))
+; Update Progress bar - line 5 (y = $CB + (5 * increment #))
 	ldy Reg1
 	lda #$54							; Screen RAM code for Ctrl+T
+	sta (Ptr_Lo),y
+	iny
 	sta (Ptr_Lo),y
 	iny
 	sta (Ptr_Lo),y

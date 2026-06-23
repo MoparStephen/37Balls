@@ -49,15 +49,6 @@
 .zpvar Reg8				.byte			; Multi-Use Variables
 .zpvar Ptr_Lo			.byte			; Lo byte of pointer
 .zpvar Ptr_Hi			.byte			; Hi byte of pointer
-
-; Music player zero-page variables (allocated after last zpvar: Y_REGISTER at $91-$92)
-Mus_Chn_Copy			equ $93			; 9-byte match-length array, one entry per POKEY register
-Mus_Chn_Pos				equ $9C			; 9-byte match-offset array, one entry per POKEY register
-Mus_Bptr				equ $A5			; 2-byte buffer read pointer (must be ZP for indirect addressing)
-Mus_Cur_Pos				equ $A7			; Current write position (0-255) in the 256-byte ring buffers
-Mus_Chn_Bits			equ $A8			; Channel-skip bitmask (constant byte 0 of the .lz16 stream)
-Mus_Bit_Data			equ $A9			; LZSS bit shift register; value 1 = empty, fetch new byte next
-
 .zpvar Do_Motion		.byte			; Allows pausing motion for the initial start
 .zpvar Num_Sprites		.byte			; Keeps track of the number of sprites we are displaying
 
@@ -80,9 +71,9 @@ Mus_Bit_Data			equ $A9			; LZSS bit shift register; value 1 = empty, fetch new b
 	org $4400
 	.proc music
 STEREOMODE				equ $00
-init_song = RASTERMUSICTRACKER+0
-play      = RASTERMUSICTRACKER+3
-silence   = RASTERMUSICTRACKER+9
+init_song				equ RASTERMUSICTRACKER+0
+play					equ RASTERMUSICTRACKER+3
+silence					equ RASTERMUSICTRACKER+9
 
 	icl 'Assets\Atari_Led.feat'
 player
@@ -138,7 +129,7 @@ Bobs	equ	$5500
 .def	V_0								= $11	; 1 (Screen code used for Version in loading screen)
 .def	V_1								= $10	; 0 (Screen code used for Version in loading screen)
 .def	V_2								= $11	; 1 (Screen code used for Version in loading screen)
-.def	V_3								= $61	; 61=a (Screen code used for Version in loading screen)
+.def	V_3								= $62	; b (Screen code used for Version in loading screen)
 
 ;-----------------------------------------------------------------------------
 ; VBXE Helpers
