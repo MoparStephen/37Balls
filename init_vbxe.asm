@@ -175,6 +175,7 @@ Intro_Text_Message
 	.sb $7C,' 24 32x32 objects 320x256x 16 @ 50 Hz ',$7C
 	.sb $7C,'I managed to get quite a bit more!    ',$7C
 	.sb $7C,' 37 32x32 objects 320x240x256 @ 50 Hz ',$7C
+	.sb $7C,'                                      ',$7C
 	.sb $7C,'Video is 3 hardware layers overlaid:  ',$7C
 	.sb $7C,' ANTIC Displays 320*240 monochrome BG ',$7C
 	.sb $7C,' VBXE Colour Map : 208 colours for BG ',$7C
@@ -183,9 +184,8 @@ Intro_Text_Message
 	.sb $7C,'                                      ',$7C
 	.sb $7C,'Code  : Stephen (MADS + VS Code)      ',$7C
 	.sb $7C,'Grafix: Stephen (GIMP + Custom Toolz) ',$7C
-	.sb $7C,'Musix : Michal Szpilowski (RMT)       ',$7C
-	.sb $7C,'        Atari LED (c) 2009-2010       ',$7C
-	.sb $7C,'        DMSC (playlzs16) (c) 2020 MIT ',$7C
+	.sb $7C,'Musix : Atari LED (c)Michal Szpilowski',$7C
+	.sb $7C,'        Radek Sterba (RIP) RMT Player ',$7C
 	.byte $5A,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$52,$43
 NTSC_Warning_Message
 	.sb 'NTSC Detected - limiting to 24 sprites'
