@@ -678,6 +678,9 @@ Wait_For_Key_Exit_L1
 	cmp #$FF
 	beq Wait_For_Key_Exit_L1			; Wait for Key Press
 
+	lda #$FF
+	sta CH								; Clear last key pressed
+
 	rts									; Return controll to loader
 
 Wait_Key_Message

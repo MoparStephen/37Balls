@@ -129,7 +129,7 @@ Bobs	equ	$5500
 .def	V_0								= $11	; 1 (Screen code used for Version in loading screen)
 .def	V_1								= $10	; 0 (Screen code used for Version in loading screen)
 .def	V_2								= $11	; 1 (Screen code used for Version in loading screen)
-.def	V_3								= $62	; b (Screen code used for Version in loading screen)
+.def	V_3								= $63	; c (Screen code used for Version in loading screen)
 
 ;-----------------------------------------------------------------------------
 ; VBXE Helpers
