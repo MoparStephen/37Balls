@@ -1,4 +1,4 @@
- ; .loadsym "C:\Users\Stephen\source\repos\My Atari 8-bit code\37Balls\out\demo.lab"
+ ; .loadsym 'C:\Users\Stephen\source\repos\My Atari 8-bit code\37Balls\out\demo.lab'
 ;-----------------------------------------------------------------------------
 ; Memory Map
 ;-----------------------------------------------------------------------------
@@ -74,6 +74,25 @@ Mus_Bit_Data			equ $A9			; LZSS bit shift register; value 1 = empty, fetch new b
 .var SDLSTH_OLD			.byte = $486	; Save the Display List Pointer
 .var Video_Flag			.byte = $487	; PAL = 0, NTSC = 1
 
+;-----------------------------------------------------------------------------
+; Rasta Music Tracker Stuff
+;-----------------------------------------------------------------------------
+	org $4400
+	.proc music
+STEREOMODE				equ $00
+init_song = RASTERMUSICTRACKER+0
+play      = RASTERMUSICTRACKER+3
+silence   = RASTERMUSICTRACKER+9
+
+	icl 'Assets\music.feat'
+player
+	icl 'rmt_player.asm'				; Include RMT player routine
+	icl 'rmt_relocator.asm'
+
+module	
+	rmt_relocator 'Assets\music.rmt' module	; Include music RMT module
+	.endp
+
 ; Sprite struct array in free RAM $5500-$57BF (37 sprites * 11 bytes = 407 bytes)
 Bobs	equ	$5500
 
@@ -133,6 +152,8 @@ Bobs	equ	$5500
 ; Clean up and exit based on LoadStatus
 ;-----------------------------------------------------------------------------
 Cleanup_Exit
+	jsr music.silence					; Stop music
+
 	lda #$00							; Don't display anything during exit
 	sta SDMCTL
 	sta COLOR1
@@ -182,11 +203,16 @@ Wait_For_Key_Exit_L1
 	icl 'init_vbxe.asm'
 
 	org LOAD_ADDRESS + $300				; Libraries live above
-
 ;-----------------------------------------------------------------------------
 ; Main loop
 ;-----------------------------------------------------------------------------
 main
+; Setup RMT
+	ldx #<music.module
+	ldy #>music.module
+	lda #0
+	jsr music.init_song
+
 	lda #$00
 	sta Do_Motion
 
@@ -259,6 +285,7 @@ Main_Loop
 	sta ATRACT							; Disable Screensaver
 
 ; Do all the work
+	jsr music.play						; Play a frame of music
 	jsr	Set_Positions					; Update positions, bounce, write BCBs, blit all sprites
 	jsr	Flip_Screen						; Swap buffers
 	jsr	Clear_Screen					; Redraw background
@@ -638,7 +665,7 @@ Wait_For_Sync							; Hold until VCOUNT == 0
 	bmi *-3
 	bit	VCOUNT
 	bpl *-3
-; If present, the next 3 lines will allow a "jump to exit" on a specific key press
+; If present, the next 3 lines will allow a 'jump to exit' on a specific key press
 	lda CH
 	cmp #$2F							; Press Q to quit
 	beq Exit_Long
