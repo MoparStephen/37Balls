@@ -180,7 +180,7 @@ Intro_Text_Message
 	.sb $7C,' ANTIC Displays 320*240 monochrome BG ',$7C
 	.sb $7C,' VBXE Colour Map : 208 colours for BG ',$7C
 	.sb $7C,' VBXE Blits  37 32*32 Sprites @ 50Hz  ',$7C
-	.sb $7C,' LZSS Music Player 4 channels @ 50Hz  ',$7C
+	.sb $7C,' RMT  Music Player 4 channels @ 50Hz  ',$7C
 	.sb $7C,'                                      ',$7C
 	.sb $7C,'Code  : Stephen (MADS + VS Code)      ',$7C
 	.sb $7C,'Grafix: Stephen (GIMP + Custom Toolz) ',$7C

@@ -84,13 +84,13 @@ init_song = RASTERMUSICTRACKER+0
 play      = RASTERMUSICTRACKER+3
 silence   = RASTERMUSICTRACKER+9
 
-	icl 'Assets\music.feat'
+	icl 'Assets\Atari_Led.feat'
 player
 	icl 'rmt_player.asm'				; Include RMT player routine
 	icl 'rmt_relocator.asm'
 
-module	
-	rmt_relocator 'Assets\music.rmt' module	; Include music RMT module
+module									; Include music RMT module
+	rmt_relocator 'Assets\Atari_Led.rmt' module
 	.endp
 
 ; Sprite struct array in free RAM $5500-$57BF (37 sprites * 11 bytes = 407 bytes)
@@ -138,7 +138,7 @@ Bobs	equ	$5500
 .def	V_0								= $11	; 1 (Screen code used for Version in loading screen)
 .def	V_1								= $10	; 0 (Screen code used for Version in loading screen)
 .def	V_2								= $11	; 1 (Screen code used for Version in loading screen)
-.def	V_3								= $00	; 61=a (Screen code used for Version in loading screen)
+.def	V_3								= $61	; 61=a (Screen code used for Version in loading screen)
 
 ;-----------------------------------------------------------------------------
 ; VBXE Helpers
