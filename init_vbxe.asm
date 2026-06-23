@@ -634,6 +634,7 @@ Load_Background_Message
 FujiGraphics_Mono
 	ins 'Assets\Fuji_Mono.raw'			; $520 bytes
 
+/*
 ; Step $0A - Load the music into CPU RAM @ $6000
 	org LOAD_ADDRESS + $300
 .proc Load_Music
@@ -684,6 +685,7 @@ Mus_Song_Data
 Mus_Loop_Point
 	ins	'Assets\Atari_Led_p2.lz16'
 Mus_Song_End
+*/
 
 ; Step $0B - Display final message and wait for key
 	org LOAD_ADDRESS + $300

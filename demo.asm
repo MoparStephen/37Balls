@@ -216,7 +216,6 @@ main
 	jsr Generate_Colour_Map				; So we don't have a boring monochrome background
 
 	jsr	Init_Objects					; Initialise all sprite structs
-	jsr	Mus_Init_Song					; Initialise LZSS music player
 
 ; Point the buffer to the currently being displayed screen
 	lda	#$80							; Bank $00 with global enable (XDL lives in bank $00)
@@ -241,7 +240,6 @@ main
 	sta Reg1
 
 Delay_Start
-	jsr	Mus_Play_Frame					; Decode and output one frame of music
 	jsr Wait_For_Sync
 	dec Reg1
 	bne Delay_Start
@@ -257,8 +255,6 @@ Set_Do_Motion
 	sta Do_Motion						; Allow positions to update when blitting
 
 Main_Loop
-	jsr	Mus_Play_Frame					; Decode and output one frame of music
-
 	lda	#$00
 	sta ATRACT							; Disable Screensaver
 
@@ -763,136 +759,6 @@ Skip_Reg6
 Calculate_200_End						; This takes on average $37(55) cycles, code is $22(34) bytes TODO: Calculate new cycle time based on code to handle double buffering
 	pla
 	sta VBXE_MA_BSEL					; Restore to initial value
-
-	rts
-
-;-----------------------------------------------------------------------------
-; LZSS SAP music player - ported from playlzs16.asm (c) 2020 DMSC, MIT license
-; Format: 16-bit match (8-bit length + 8-bit offset), min-length 2
-; Compress with: lzss -b 16 -o 8 -m 1 input.rsap output.lz16
-;-----------------------------------------------------------------------------
-
-;-----------------------------------------------------------------------------
-; Mus_Get_Byte - Self-modifying: reads the next byte from the compressed stream
-; Returns byte in A; advances Mus_Song_Ptr by 1
-;-----------------------------------------------------------------------------
-Mus_Get_Byte
-	lda	Mus_Song_Data+1					; Address field (Mus_Song_Ptr) is self-modified below
-	inc	Mus_Song_Ptr
-	bne	Mus_Get_Skip
-	inc	Mus_Song_Ptr+1
-Mus_Get_Skip
-	rts
-Mus_Song_Ptr	= Mus_Get_Byte+1		; Points to the 2-byte address inside the LDA instruction
-
-;-----------------------------------------------------------------------------
-; Mus_Init_Song - Call once before Main_Loop to prime buffers and POKEY
-;-----------------------------------------------------------------------------
-Mus_Init_Song
-	ldx	#8
-	ldy	#0
-Mus_Init_Clear
-	jsr	Mus_Get_Byte					; Reads bytes 1-9: initial POKEY register values
-	sta	AUDF1,x							; Write to POKEY (AUDF1..AUDCTL)
-	sty	mus_chn_copy,x					; Zero copy-length for all channels
-Mus_Init_Cbuf
-	sta	Mus_Buffers+255					; Self-mod: seed last byte of each channel buffer
-	inc	Mus_Init_Cbuf+2					; Advance dest hi-byte $60→$61→…→$68 (9 channels)
-	dex
-	bpl	Mus_Init_Clear
-
-	sty	mus_bptr						; Zero lo byte of buffer pointer
-	sty	mus_cur_pos						; Reset ring-buffer write position
-	lda	#1
-	sta	mus_bit_data					; Init bit shift register (1 = empty sentinel)
-	rts
-
-;-----------------------------------------------------------------------------
-; Mus_Play_Frame - Call once per VSYNC to decode and output one music frame
-;-----------------------------------------------------------------------------
-Mus_Play_Frame
-	; 16-bit >= check: if Mus_Song_Ptr >= Mus_Song_End, restart p2 loop section
-	lda	Mus_Song_Ptr+1
-	cmp	#>Mus_Song_End
-	bcc	Mus_Check_Intro					; Hi byte below end - check intro transition
-	bne	Mus_Do_P2_Restart				; Hi byte above end - overshot, restart p2
-	lda	Mus_Song_Ptr
-	cmp	#<Mus_Song_End
-	bcc	Mus_Check_Intro					; Same hi byte, lo byte below end
-Mus_Do_P2_Restart
-	; Restart p2 loop section (called at end of p1 and at end of p2)
-	lda	#<(Mus_Loop_Point+1)			; Skip byte 0 of p2 (channel mask byte)
-	sta	Mus_Song_Ptr
-	lda	#>(Mus_Loop_Point+1)
-	sta	Mus_Song_Ptr+1
-	lda	#>Mus_Buffers
-	sta	Mus_Init_Cbuf+2					; Reset self-mod hi-byte ($69→$60) before re-init
-	lda	#<Mus_Loop_Point				; Switch channel mask source to p2 byte 0
-	sta	Mus_Chn_Mask_Ptr
-	lda	#>Mus_Loop_Point
-	sta	Mus_Chn_Mask_Ptr+1
-	jsr	Mus_Init_Song
-	jmp	Mus_Play_Go
-Mus_Check_Intro
-	; If channel mask already points to p2, skip intro-end check
-	lda	Mus_Chn_Mask_Ptr+1
-	cmp	#>Mus_Song_Data
-	bne	Mus_Play_Go						; Not p1 hi byte: already in p2
-	; Still in p1 - check if Mus_Song_Ptr >= Mus_Loop_Point
-	lda	Mus_Song_Ptr+1
-	cmp	#>Mus_Loop_Point
-	bcc	Mus_Play_Go						; Hi byte below loop point page, still in p1
-	bne	Mus_Do_P2_Restart				; Hi byte above loop point page, transition
-	lda	Mus_Song_Ptr
-	cmp	#<Mus_Loop_Point
-	bcs	Mus_Do_P2_Restart				; At or past loop point, transition to p2
-Mus_Play_Go
-	lda	#>Mus_Buffers
-	sta	mus_bptr+1						; Point buffer pointer at channel 8's 256-byte window
-
-	lda	Mus_Song_Data					; Byte 0: channel-skip bitmask - addr self-modified after intro
-Mus_Chn_Mask_Ptr	equ	*-2				; 2-byte address operand of LDA above
-	sta	mus_chn_bits
-	ldx	#8
-
-Mus_Chn_Loop
-	lsr	mus_chn_bits
-	bcs	Mus_Skip_Chn					; C=1: this channel is disabled in the song
-
-	lda	mus_chn_copy,x
-	bne	Mus_Do_Copy						; Non-zero: still emitting a match run
-
-	; Decode next symbol - literal byte or back-reference match
-	lsr	mus_bit_data					; Extract next bit from shift register
-	bne	Mus_Got_Bit						; Non-zero result means register still has data
-	jsr	Mus_Get_Byte					; Register empty - fetch a new byte
-	ror									; Shift right; carry (from prior lsr) fills bit 7
-	sta	mus_bit_data					; Store 7 bits of data + sentinel in bit 7
-Mus_Got_Bit
-	jsr	Mus_Get_Byte					; Read value byte (literal or match offset)
-	bcs	Mus_Store						; C=1: literal byte, store it directly
-
-	sta	mus_chn_pos,x					; C=0: match - save the offset byte
-	jsr	Mus_Get_Byte
-	sta	mus_chn_copy,x					; Save the match length byte
-
-Mus_Do_Copy
-	dec	mus_chn_copy,x					; Consume one byte of match length
-	inc	mus_chn_pos,x					; Advance match position
-	ldy	mus_chn_pos,x
-	lda	(mus_bptr),y					; Read historical byte from ring buffer
-
-Mus_Store
-	ldy	mus_cur_pos
-	sta	$D200,x							; Output to POKEY register x
-	sta	(mus_bptr),y					; Store in ring buffer for future back-references
-
-Mus_Skip_Chn
-	inc	mus_bptr+1						; Slide buffer window to next channel (each is 256 bytes)
-	dex
-	bpl	Mus_Chn_Loop
-
-	inc	mus_cur_pos						; Advance ring-buffer write position (wraps at 256)
 
 	rts
 
