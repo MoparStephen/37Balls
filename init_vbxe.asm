@@ -385,13 +385,14 @@ Print_Clearing_Message_L1
 
 	; Kick blit
 	lda #$00
-	sta VBXE_BL_ADR0
-	sta VBXE_BL_ADR1
-	sta VBXE_BL_ADR2
-	mva #$01 VBXE_BLITTER_START
+	vbsta VBXE_BL_ADR0
+	vbsta VBXE_BL_ADR1
+	vbsta VBXE_BL_ADR2
+	lda #$01
+	vbsta VBXE_BLITTER_START			; Start the blit
 
 	; Wait for blit complete
-	lda:rne VBXE_BLITTER_BUSY
+	vblda:rne VBXE_BLITTER_BUSY
 
 	lda #MEMAC_GLOBAL_DISABLE			; USE CPU address space
 	vbsta VBXE_MA_BSEL
