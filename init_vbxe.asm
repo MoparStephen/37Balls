@@ -374,10 +374,10 @@ Print_Clearing_Message_L1
 ; Set the base address of MEMA window to VBXE_WINDOW
 ; Size to 4k and accesible only by CPU
 	lda #>VBXE_WINDOW + 8
-	vbsta VBXE_MA_CTL
+	sta VBXE_MA_CTL
 
 	lda #$00 | MEMAC_GLOBAL_ENABLE		; Bank $00 VBXE Window Enabled
-	vbsta VBXE_MA_BSEL
+	sta VBXE_MA_BSEL
 
 	; Copy blit to VBXE memory
 	ldx #$14
@@ -385,17 +385,17 @@ Print_Clearing_Message_L1
 
 	; Kick blit
 	lda #$00
-	vbsta VBXE_BL_ADR0
-	vbsta VBXE_BL_ADR1
-	vbsta VBXE_BL_ADR2
+	sta VBXE_BL_ADR0
+	sta VBXE_BL_ADR1
+	sta VBXE_BL_ADR2
 	lda #$01
-	vbsta VBXE_BLITTER_START			; Start the blit
+	sta VBXE_BLITTER_START				; Start the blit
 
 	; Wait for blit complete
-	vblda:rne VBXE_BLITTER_BUSY
+	lda:rne VBXE_BLITTER_BUSY
 
 	lda #MEMAC_GLOBAL_DISABLE			; USE CPU address space
-	vbsta VBXE_MA_BSEL
+	sta VBXE_MA_BSEL
 
 	rts									; Return controll to loader
 
@@ -429,7 +429,7 @@ Clearing_Message
 	org LOAD_ADDRESS + $300
 .proc Load_XDL
 	lda #$00 | MEMAC_GLOBAL_ENABLE		; Bank $00 VBXE Window Enabled
-	vbsta VBXE_MA_BSEL
+	sta VBXE_MA_BSEL
 
 ; Print Load_XDL_Message - line 3 (y = $79)
 	ldy #$79
@@ -472,7 +472,7 @@ XDL_Length	equ *-XDL_START
 	org LOAD_ADDRESS + $300
 .proc Load_BCB
 	lda #$00 | MEMAC_GLOBAL_ENABLE		; Bank $00 VBXE Window Enabled
-	vbsta VBXE_MA_BSEL
+	sta VBXE_MA_BSEL
 
 ; Print Load_BCB_Message - line 3 (y = $79)
 	ldy #$79
@@ -517,7 +517,7 @@ BLT_Length	equ *-BCB_START
 	org LOAD_ADDRESS + $300
 .proc Load_Palette
 	lda #MEMAC_GLOBAL_DISABLE			; USE CPU address space
-	vbsta VBXE_MA_BSEL
+	sta VBXE_MA_BSEL
 
 ; Print Load_Palette_Message - line 3 (y = $79)
 	ldy #$79
@@ -561,7 +561,7 @@ Palette
 	org LOAD_ADDRESS + $300
 .proc Load_Ball
 	lda #$10 | MEMAC_GLOBAL_ENABLE		; Bank $10 VBXE Window Enabled
-	vbsta VBXE_MA_BSEL
+	sta VBXE_MA_BSEL
 
 ; Print Load_Ball_Message - line 3 (y = $79)
 	ldy #$79

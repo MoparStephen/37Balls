@@ -129,7 +129,7 @@ Bobs	equ	$5500
 .def	V_0								= $11	; 1 (Screen code used for Version in loading screen)
 .def	V_1								= $10	; 0 (Screen code used for Version in loading screen)
 .def	V_2								= $12	; 2 (Screen code used for Version in loading screen)
-.def	V_3								= $00	;   (Screen code used for Version in loading screen)
+.def	V_3								= $61	; A (Screen code used for Version in loading screen)
 
 ;-----------------------------------------------------------------------------
 ; VBXE Helpers
@@ -154,8 +154,8 @@ Cleanup_Exit
 	bpl *-3
 
 	lda #MEMAC_GLOBAL_DISABLE			; USE CPU address space
-	vbsta VBXE_MA_BSEL
-	vbsta VBXE_VIDEO_CONTROL			; Disable XDL
+	sta VBXE_MA_BSEL
+	sta VBXE_VIDEO_CONTROL				; Disable XDL
 
 	lda CRSINH_OLD
 	sta CRSINH							; Restore CRSINH
@@ -211,10 +211,10 @@ main
 	sta Num_Sprites
 
 	lda #$00							; Setup VBXE for displaying picture data
-	vbsta VBXE_XDL_ADR0					; But don't show the overlay just yet!
-	vbsta VBXE_XDL_ADR2
+	sta VBXE_XDL_ADR0					; But don't show the overlay just yet!
+	sta VBXE_XDL_ADR2
 	lda #$04
-	vbsta VBXE_XDL_ADR1
+	sta VBXE_XDL_ADR1
 
 	lda #$00
 	sta COLOR2							; Set Playfield Black
@@ -222,7 +222,7 @@ main
 	jsr Wait_For_Sync
 
 	lda #%00000011						; XDL,XCOLOR Enabled and transparent color index 0
-	vbsta VBXE_VIDEO_CONTROL
+	sta VBXE_VIDEO_CONTROL
 
 ; Pre-fill both screen buffers with the background before animation starts
 	jsr Flip_Screen
@@ -236,7 +236,7 @@ main
 
 ; Point the buffer to the currently being displayed screen
 	lda #$80							; Bank $00 with global enable (XDL lives in bank $00)
-	vbsta VBXE_MA_BSEL
+	sta VBXE_MA_BSEL
 
 	lda VBXE_WINDOW + $405				; XDL Adr2 (byte 5 of XDL at VBXE_WINDOW+$400)
 	eor #$06							; Flip between $02 ($020000) and $04 ($040000)
@@ -247,7 +247,7 @@ main
 
 ; Set it back
 	lda #$80							; Bank $00 with global enable (XDL lives in bank $00)
-	vbsta VBXE_MA_BSEL
+	sta VBXE_MA_BSEL
 
 	lda VBXE_WINDOW + $405				; XDL Adr2 (byte 5 of XDL at VBXE_WINDOW+$400)
 	eor #$06							; Flip between $02 ($020000) and $04 ($040000)
@@ -306,9 +306,9 @@ Exit
 	sta CH								; Clear last key pressed
 
 	lda #$00
-	vbsta VBXE_VIDEO_CONTROL			; Disable XDL
+	sta VBXE_VIDEO_CONTROL				; Disable XDL
 	lda #$00
-	vbsta VBXE_MA_BSEL					; Restore main memory (and disable VBXE memory window at VBXE_WINDOW)
+	sta VBXE_MA_BSEL					; Restore main memory (and disable VBXE memory window at VBXE_WINDOW)
 
 	jmp (DOSVEC)						; Good bye ;)
 
@@ -362,7 +362,7 @@ Reverse_Y
 ;-----------------------------------------------------------------------------
 Set_Positions
 	lda #$80
-	vbsta VBXE_MA_BSEL					; Enable VBXE window for BCB writes
+	sta VBXE_MA_BSEL					; Enable VBXE window for BCB writes
 
 	lda #<Bobs
 	sta Ptr_Lo
@@ -533,7 +533,7 @@ No_Hi_Bump
 	jmp Spr_Loop						; Long branch workaround (loop body > 127 bytes)
 Spr_Loop_Done
 	lda #$00
-	vbsta VBXE_MA_BSEL					; Disable VBXE window
+	sta VBXE_MA_BSEL					; Disable VBXE window
 	rts
 
 ;-----------------------------------------------------------------------------
@@ -623,7 +623,7 @@ No_PH_Bump
 ;-----------------------------------------------------------------------------
 Flip_Screen
 	lda #$80
-	vbsta VBXE_MA_BSEL
+	sta VBXE_MA_BSEL
 	lda VBXE_WINDOW+$405
 	sta VBXE_WINDOW+$500+BLT_BALL-BLT_BALL+8
 	sta VBXE_WINDOW+$500+BLT_BAKGRND-BLT_BALL+8
@@ -637,16 +637,16 @@ Flip_Screen
 ;-----------------------------------------------------------------------------
 Draw_Sprite
 	lda #BLT_BALL-BLT_BALL
-	vbsta VBXE_BL_ADR0
+	sta VBXE_BL_ADR0
 	lda #$00
-	vbsta VBXE_BL_ADR2
+	sta VBXE_BL_ADR2
 	lda #$05
-	vbsta VBXE_BL_ADR1
+	sta VBXE_BL_ADR1
 Draw_Sprite_L1
-	vblda VBXE_BLITTER_BUSY
+	lda VBXE_BLITTER_BUSY
 	bne Draw_Sprite_L1					; Wait for blitter idle
 	lda #$01
-	vbsta VBXE_BLITTER_START			; Fire
+	sta VBXE_BLITTER_START				; Fire
 	rts
 
 ;-----------------------------------------------------------------------------
@@ -671,18 +671,18 @@ Exit_Long
 ;-----------------------------------------------------------------------------
 Clear_Screen
 	lda #BLT_BAKGRND-BLT_BALL
-	vbsta VBXE_BL_ADR0					; Setup the blitter for memory fill operation
+	sta VBXE_BL_ADR0					; Setup the blitter for memory fill operation
 	lda #$00
-	vbsta VBXE_BL_ADR2					; See the description of BCB at the end of this
+	sta VBXE_BL_ADR2					; See the description of BCB at the end of this
 	lda #$05							; Source
-	vbsta VBXE_BL_ADR1
+	sta VBXE_BL_ADR1
 	lda #$00
 Clear_Screen_L1
-	vblda VBXE_BLITTER_BUSY
+	lda VBXE_BLITTER_BUSY
 	cmp #$00
 	bne Clear_Screen_L1					; Wait for blitter to finish
 	lda #$01
-	vbsta VBXE_BLITTER_START			; Start the blit
+	sta VBXE_BLITTER_START				; Start the blit
 	rts
 
 ;-----------------------------------------------------------------------------
@@ -690,18 +690,18 @@ Clear_Screen_L1
 ;-----------------------------------------------------------------------------
 Setup_Cmap1
 	lda #BLT_SETUP_CMAP_1-BLT_BALL
-	vbsta VBXE_BL_ADR0					; Setup the blitter for memory fill operation
+	sta VBXE_BL_ADR0					; Setup the blitter for memory fill operation
 	lda #$00
-	vbsta VBXE_BL_ADR2					; See the description of BCB at the end of this
+	sta VBXE_BL_ADR2					; See the description of BCB at the end of this
 	lda #$05							; Source
-	vbsta VBXE_BL_ADR1
+	sta VBXE_BL_ADR1
 	lda #$00
 Setup_Cmap1_L1
-	vblda VBXE_BLITTER_BUSY
+	lda VBXE_BLITTER_BUSY
 	cmp #$00
 	bne Setup_Cmap1_L1					; Wait for blitter to finish
 	lda #$01
-	vbsta VBXE_BLITTER_START			; Start the blit
+	sta VBXE_BLITTER_START				; Start the blit
 	rts
 
 ;-----------------------------------------------------------------------------
@@ -709,18 +709,18 @@ Setup_Cmap1_L1
 ;-----------------------------------------------------------------------------
 Setup_Cmap2
 	lda #BLT_SETUP_CMAP_2-BLT_BALL
-	vbsta VBXE_BL_ADR0					; Setup the blitter for memory fill operation
+	sta VBXE_BL_ADR0					; Setup the blitter for memory fill operation
 	lda #$00
-	vbsta VBXE_BL_ADR2					; See the description of BCB at the end of this
+	sta VBXE_BL_ADR2					; See the description of BCB at the end of this
 	lda #$05							; Source
-	vbsta VBXE_BL_ADR1
+	sta VBXE_BL_ADR1
 	lda #$00
 Setup_Cmap2_L1
-	vblda VBXE_BLITTER_BUSY
+	lda VBXE_BLITTER_BUSY
 	cmp #$00
 	bne Setup_Cmap2_L1					; Wait for blitter to finish
 	lda #$01
-	vbsta VBXE_BLITTER_START			; Start the blit
+	sta VBXE_BLITTER_START				; Start the blit
 	rts
 
 ;-----------------------------------------------------------------------------
@@ -736,11 +736,11 @@ Setup_Cmap2_L1
 Calculate_200
 ; Because we are double buffering, we need to write to the backbuffer
 ; So load the buffer address from the XDL but use the other one
-	vblda VBXE_MA_BSEL
+	lda VBXE_MA_BSEL
 	pha									; Store it
 
 	lda #$80							; Bank $00 with global enable (XDL lives in bank $00)
-	vbsta VBXE_MA_BSEL
+	sta VBXE_MA_BSEL
 
 	lda VBXE_WINDOW + $405				; XDL Adr2 (byte 5 of XDL at VBXE_WINDOW+$400)
 	eor #$06							; Flip between $02 ($020000) and $04 ($040000)
@@ -777,7 +777,7 @@ Skip_Reg6
 	sta Reg6
 Calculate_200_End						; This takes on average $37(55) cycles, code is $22(34) bytes TODO: Calculate new cycle time based on code to handle double buffering
 	pla
-	vbsta VBXE_MA_BSEL					; Restore to initial value
+	sta VBXE_MA_BSEL					; Restore to initial value
 
 	rts
 
@@ -856,7 +856,7 @@ no_carry
 Setup_Colours
 ; Turn on VBXE window so we can modify the BCB
 	lda #$80							; Copy some data into VBXE address space (XDL, Blitter control blocks (BCB))
-	vbsta VBXE_MA_BSEL
+	sta VBXE_MA_BSEL
 
 	ldx #$00							; Prepare to loop
 Setup_Colours_L1
