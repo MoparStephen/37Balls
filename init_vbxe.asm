@@ -72,7 +72,7 @@ Wait2
 	lda vcount
 	bne Wait2
 ; VCount = zero, but we've saved the largest possible in Y
-	cpy #$85 							; NTSC will never get this high
+	cpy #$85							; NTSC will never get this high
 	bcc NTSC_Detected
 
 PAL_Detected
@@ -203,15 +203,15 @@ Device
 	beq Ram_Ok
 
 	lda #$01							; Set BASICF for OS
-	sta BASICF							; so BASIC remains OFF after RESET
+	sta BASICF							; So BASIC remains OFF after RESET
 
 	lda PORTB							; Disable BASIC bit in PORTB for MMU
-	ora #$02							; by Setting bit 2
+	ora #$02							; By Setting bit 2
 	sta PORTB
 
 	lda $A000							; Check if BASIC ROM area is now RAM
 	inc $A000							; This will also catch SDX not launching
-	cmp $A000							; the app via X
+	cmp $A000							; The app via X
 	beq Ram_Not_Ok						; If not, perform print error and exit
 
 	lda #$0C							; 12 = CLOSE
@@ -234,7 +234,7 @@ Do_CIOV
 Ram_Ok
 	rts
 
-Ram_Not_Ok; Add your error handling here, there still is a ROM....
+Ram_Not_Ok								; Add your error handling here, there still is a ROM....
 	ldy #$42							; Dark Red
 	sty COLOR2							; Set playfield
 
@@ -373,10 +373,10 @@ Print_Clearing_Message_L1
 
 ; Set the base address of MEMA window to VBXE_WINDOW
 ; Size to 4k and accesible only by CPU
-	lda	#>VBXE_WINDOW + 8
+	lda #>VBXE_WINDOW + 8
 	vbsta VBXE_MA_CTL
 
-	lda	#$00 | MEMAC_GLOBAL_ENABLE		; Bank $00 VBXE Window Enabled
+	lda #$00 | MEMAC_GLOBAL_ENABLE		; Bank $00 VBXE Window Enabled
 	vbsta VBXE_MA_BSEL
 
 	; Copy blit to VBXE memory
@@ -393,7 +393,7 @@ Print_Clearing_Message_L1
 	; Wait for blit complete
 	lda:rne VBXE_BLITTER_BUSY
 
-	lda	#MEMAC_GLOBAL_DISABLE			; USE CPU address space
+	lda #MEMAC_GLOBAL_DISABLE			; USE CPU address space
 	vbsta VBXE_MA_BSEL
 
 	rts									; Return controll to loader
@@ -427,7 +427,7 @@ Clearing_Message
 ; Step $05 - Load the XDL
 	org LOAD_ADDRESS + $300
 .proc Load_XDL
-	lda	#$00 | MEMAC_GLOBAL_ENABLE		; Bank $00 VBXE Window Enabled
+	lda #$00 | MEMAC_GLOBAL_ENABLE		; Bank $00 VBXE Window Enabled
 	vbsta VBXE_MA_BSEL
 
 ; Print Load_XDL_Message - line 3 (y = $79)
@@ -470,7 +470,7 @@ XDL_Length	equ *-XDL_START
 ; Step $06 - Load the BCBs
 	org LOAD_ADDRESS + $300
 .proc Load_BCB
-	lda	#$00 | MEMAC_GLOBAL_ENABLE		; Bank $00 VBXE Window Enabled
+	lda #$00 | MEMAC_GLOBAL_ENABLE		; Bank $00 VBXE Window Enabled
 	vbsta VBXE_MA_BSEL
 
 ; Print Load_BCB_Message - line 3 (y = $79)
@@ -515,7 +515,7 @@ BLT_Length	equ *-BCB_START
 ; Step $07 - Load VBXE Palette #1
 	org LOAD_ADDRESS + $300
 .proc Load_Palette
-	lda	#MEMAC_GLOBAL_DISABLE			; USE CPU address space
+	lda #MEMAC_GLOBAL_DISABLE			; USE CPU address space
 	vbsta VBXE_MA_BSEL
 
 ; Print Load_Palette_Message - line 3 (y = $79)
@@ -559,7 +559,7 @@ Palette
 ; Step $08 - Load Ball Graphics into VBXE
 	org LOAD_ADDRESS + $300
 .proc Load_Ball
-	lda	#$10 | MEMAC_GLOBAL_ENABLE		; Bank $10 VBXE Window Enabled
+	lda #$10 | MEMAC_GLOBAL_ENABLE		; Bank $10 VBXE Window Enabled
 	vbsta VBXE_MA_BSEL
 
 ; Print Load_Ball_Message - line 3 (y = $79)

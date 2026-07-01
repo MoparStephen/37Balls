@@ -22,17 +22,17 @@
 ; Structure Declarations
 ;-----------------------------------------------------------------------------
 .struct Sprite
-	X_Pos_Frac			.byte			; Horizontal position (Fractional) sprite1
-	X_Pos_Lo			.byte			; Horizontal position sprite1
-	X_Pos_Hi			.byte			; Horizontal position sprite1 (Valid Values 0-319)
-	Y_Pos_Frac			.byte			; Vertical position (Fractional) sprite1
-	Y_Pos				.byte			; Vertical position sprite1 (valid values 0-239)
-	Delta_X_Sign		.byte			; X-Delta Sign (toggles betwen $00:Right, $FF:Left)
-	Delta_X_Frac		.byte			; Fractional X-Delta
-	Delta_X				.byte			; X-Delta (Valid Values) (+ = move right, - = move left)
-	Delta_Y_Sign		.byte			; Y-Delta Sign (toggles betwen $00:Down, $FF:Up)
-	Delta_Y_Frac		.byte			; Fractional Y-Delta
-	Delta_Y				.byte			; Y-Delta (Valid Values) (+ = move down, - = move up)
+	X_Pos_Frac .byte			; Horizontal position (Fractional) sprite1
+	X_Pos_Lo .byte			; Horizontal position sprite1
+	X_Pos_Hi .byte			; Horizontal position sprite1 (Valid Values 0-319)
+	Y_Pos_Frac .byte			; Vertical position (Fractional) sprite1
+	Y_Pos .byte			; Vertical position sprite1 (valid values 0-239)
+	Delta_X_Sign .byte			; X-Delta Sign (toggles betwen $00:Right, $FF:Left)
+	Delta_X_Frac .byte			; Fractional X-Delta
+	Delta_X .byte			; X-Delta (Valid Values) (+ = move right, - = move left)
+	Delta_Y_Sign .byte			; Y-Delta Sign (toggles betwen $00:Down, $FF:Up)
+	Delta_Y_Frac .byte			; Fractional Y-Delta
+	Delta_Y .byte			; Y-Delta (Valid Values) (+ = move down, - = move up)
 .ends
 
 ;-----------------------------------------------------------------------------
@@ -129,15 +129,15 @@ Bobs	equ	$5500
 .def	V_0								= $11	; 1 (Screen code used for Version in loading screen)
 .def	V_1								= $10	; 0 (Screen code used for Version in loading screen)
 .def	V_2								= $11	; 1 (Screen code used for Version in loading screen)
-.def	V_3								= $63	; c (Screen code used for Version in loading screen)
+.def	V_3								= $63	; C (Screen code used for Version in loading screen)
 
 ;-----------------------------------------------------------------------------
 ; VBXE Helpers
 ;-----------------------------------------------------------------------------
 	org LOAD_ADDRESS
 .pages 3								; DO NOT go past $3300
-	icl	'fileio.lib'
-	icl	'vbxe_min.asm'					; Use my VBXE_SetPalette2 to load linear palete
+	icl 'fileio.lib'
+	icl 'vbxe_min.asm'					; Use my VBXE_SetPalette2 to load linear palete
 
 ;-----------------------------------------------------------------------------
 ; Clean up and exit based on LoadStatus
@@ -150,10 +150,10 @@ Cleanup_Exit
 	sta COLOR1
 	bit VCOUNT							; Wait for VSYNC so screen turns off
 	bmi *-3
-	bit	VCOUNT
+	bit VCOUNT
 	bpl *-3
 
-	lda	#MEMAC_GLOBAL_DISABLE			; USE CPU address space
+	lda #MEMAC_GLOBAL_DISABLE			; USE CPU address space
 	sta VBXE_MA_BSEL
 	sta VBXE_VIDEO_CONTROL				; Disable XDL
 
@@ -178,7 +178,7 @@ Cleanup_Exit
 	lda #$FF
 	sta CH								; Clear last key pressed
 
-	jmp	(DOSVEC)						; Return to DOS
+	jmp (DOSVEC)						; Return to DOS
 
 Wait_For_Key_Exit
 	lda #$FF
@@ -210,48 +210,48 @@ main
 	lda #MAX_SPRITES_PAL
 	sta Num_Sprites
 
-	lda	#0								; Setup VBXE for displaying picture data
-	sta	VBXE_XDL_ADR0					; But don't show the overlay just yet!
-	sta	VBXE_XDL_ADR2
-	lda	#$04
-	sta	VBXE_XDL_ADR1
+	lda #0								; Setup VBXE for displaying picture data
+	sta VBXE_XDL_ADR0					; But don't show the overlay just yet!
+	sta VBXE_XDL_ADR2
+	lda #$04
+	sta VBXE_XDL_ADR1
 
-	lda	#$00
+	lda #$00
 	sta COLOR2							; Set Playfield Black
 	jsr Setup_DisplayList
 	jsr Wait_For_Sync
 
-	lda	#%00000011						; XDL,XCOLOR Enabled and transparent color index 0
-	sta	VBXE_VIDEO_CONTROL
+	lda #%00000011						; XDL,XCOLOR Enabled and transparent color index 0
+	sta VBXE_VIDEO_CONTROL
 
 ; Pre-fill both screen buffers with the background before animation starts
 	jsr Flip_Screen
-	jsr	Clear_Screen					; Draw background
+	jsr Clear_Screen					; Draw background
 	jsr Flip_Screen
-	jsr	Clear_Screen					; Draw background
+	jsr Clear_Screen					; Draw background
 
 	jsr Generate_Colour_Map				; So we don't have a boring monochrome background
 
-	jsr	Init_Objects					; Initialise all sprite structs
+	jsr Init_Objects					; Initialise all sprite structs
 
 ; Point the buffer to the currently being displayed screen
-	lda	#$80							; Bank $00 with global enable (XDL lives in bank $00)
-	sta	VBXE_MA_BSEL
+	lda #$80							; Bank $00 with global enable (XDL lives in bank $00)
+	sta VBXE_MA_BSEL
 
-	lda	VBXE_WINDOW + $405				; XDL Adr2 (byte 5 of XDL at VBXE_WINDOW+$400)
-	eor	#$06							; Flip between $02 ($020000) and $04 ($040000)
-	sta	VBXE_WINDOW + $405				; XDL Adr2 (byte 5 of XDL at VBXE_WINDOW+$400)
+	lda VBXE_WINDOW + $405				; XDL Adr2 (byte 5 of XDL at VBXE_WINDOW+$400)
+	eor #$06							; Flip between $02 ($020000) and $04 ($040000)
+	sta VBXE_WINDOW + $405				; XDL Adr2 (byte 5 of XDL at VBXE_WINDOW+$400)
 
 ; Draw the initial bobs to the screen being displayed
-	jsr	Set_Positions					; Update positions, bounce, write BCBs, blit all sprites
+	jsr Set_Positions					; Update positions, bounce, write BCBs, blit all sprites
 
 ; Set it back
-	lda	#$80							; Bank $00 with global enable (XDL lives in bank $00)
-	sta	VBXE_MA_BSEL
+	lda #$80							; Bank $00 with global enable (XDL lives in bank $00)
+	sta VBXE_MA_BSEL
 
-	lda	VBXE_WINDOW + $405				; XDL Adr2 (byte 5 of XDL at VBXE_WINDOW+$400)
-	eor	#$06							; Flip between $02 ($020000) and $04 ($040000)
-	sta	VBXE_WINDOW + $405				; XDL Adr2 (byte 5 of XDL at VBXE_WINDOW+$400)
+	lda VBXE_WINDOW + $405				; XDL Adr2 (byte 5 of XDL at VBXE_WINDOW+$400)
+	eor #$06							; Flip between $02 ($020000) and $04 ($040000)
+	sta VBXE_WINDOW + $405				; XDL Adr2 (byte 5 of XDL at VBXE_WINDOW+$400)
 
 	lda #$64							; Delay animation starting by $64 frames (2 PAL seconds)
 	sta Reg1
@@ -273,14 +273,14 @@ Set_Do_Motion
 	sta Do_Motion						; Allow positions to update when blitting
 
 Main_Loop
-	lda	#$00
+	lda #$00
 	sta ATRACT							; Disable Screensaver
 
 ; Do all the work
 	jsr music.play						; Play a frame of music
-	jsr	Set_Positions					; Update positions, bounce, write BCBs, blit all sprites
-	jsr	Flip_Screen						; Swap buffers
-	jsr	Clear_Screen					; Redraw background
+	jsr Set_Positions					; Update positions, bounce, write BCBs, blit all sprites
+	jsr Flip_Screen						; Swap buffers
+	jsr Clear_Screen					; Redraw background
 
 ; Work done -wait for vertical synch before looping again
 W_Synch_0
@@ -294,7 +294,7 @@ Wait_Space_0
 	sta ATRACT							; Disable screensaver
 	lda CH
 	cmp #$2F							; Press Q to quit
-	beq	Exit
+	beq Exit
 	cmp #$21							; Press Space to start
 	bne Wait_Space_0
 Dont_Wait_Space_0
@@ -305,12 +305,12 @@ Exit
 	lda #$FF
 	sta CH								; Clear last key pressed
 
-	lda	#0
-	sta	VBXE_VIDEO_CONTROL				; Disable XDL
-	lda	#0
-	sta	VBXE_MA_BSEL					; Restore main memory (and disable VBXE memory window at VBXE_WINDOW)
+	lda #0
+	sta VBXE_VIDEO_CONTROL				; Disable XDL
+	lda #0
+	sta VBXE_MA_BSEL					; Restore main memory (and disable VBXE memory window at VBXE_WINDOW)
 
-	jmp	(DOSVEC)						; Good bye ;)
+	jmp (DOSVEC)						; Good bye ;)
 
 ;-----------------------------------------------------------------------------
 ; Subroutines BEGIN
@@ -321,18 +321,18 @@ Exit
 ;-----------------------------------------------------------------------------
 Reverse_X
 	sec
-	ldy	#Spr_Delta_X_Frac
-	lda	#$00
-	sbc	(Ptr_Lo),y
-	sta	(Ptr_Lo),y
-	ldy	#Spr_Delta_X
-	lda	#$00
-	sbc	(Ptr_Lo),y
-	sta	(Ptr_Lo),y
-	ldy	#Spr_Delta_X_Sign
-	lda	(Ptr_Lo),y
-	eor	#$FF
-	sta	(Ptr_Lo),y
+	ldy #Spr_Delta_X_Frac
+	lda #$00
+	sbc (Ptr_Lo),y
+	sta (Ptr_Lo),y
+	ldy #Spr_Delta_X
+	lda #$00
+	sbc (Ptr_Lo),y
+	sta (Ptr_Lo),y
+	ldy #Spr_Delta_X_Sign
+	lda (Ptr_Lo),y
+	eor #$FF
+	sta (Ptr_Lo),y
 	rts
 
 ;-----------------------------------------------------------------------------
@@ -340,18 +340,18 @@ Reverse_X
 ;-----------------------------------------------------------------------------
 Reverse_Y
 	sec
-	ldy	#Spr_Delta_Y_Frac
-	lda	#$00
-	sbc	(Ptr_Lo),y
-	sta	(Ptr_Lo),y
-	ldy	#Spr_Delta_Y
-	lda	#$00
-	sbc	(Ptr_Lo),y
-	sta	(Ptr_Lo),y
-	ldy	#Spr_Delta_Y_Sign
-	lda	(Ptr_Lo),y
-	eor	#$FF
-	sta	(Ptr_Lo),y
+	ldy #Spr_Delta_Y_Frac
+	lda #$00
+	sbc (Ptr_Lo),y
+	sta (Ptr_Lo),y
+	ldy #Spr_Delta_Y
+	lda #$00
+	sbc (Ptr_Lo),y
+	sta (Ptr_Lo),y
+	ldy #Spr_Delta_Y_Sign
+	lda (Ptr_Lo),y
+	eor #$FF
+	sta (Ptr_Lo),y
 	rts
 
 ;-----------------------------------------------------------------------------
@@ -361,179 +361,179 @@ Reverse_Y
 ; X = object counter,  Ptr_Lo/Ptr_Hi = pointer to current Sprite struct
 ;-----------------------------------------------------------------------------
 Set_Positions
-	lda	#$80
-	sta	VBXE_MA_BSEL					; Enable VBXE window for BCB writes
+	lda #$80
+	sta VBXE_MA_BSEL					; Enable VBXE window for BCB writes
 
-	lda	#<Bobs
-	sta	Ptr_Lo
-	lda	#>Bobs
-	sta	Ptr_Hi
-	ldx	#0
+	lda #<Bobs
+	sta Ptr_Lo
+	lda #>Bobs
+	sta Ptr_Hi
+	ldx #0
 
 Spr_Loop
 	lda Do_Motion
 	bne Set_X
-	jmp	Skip_Motion						; Long branch fix
+	jmp Skip_Motion						; Long branch fix
 
 ;--- X motion ----------------------------------------------------------------
 Set_X
 	clc
-	ldy	#Spr_X_Pos_Frac
-	lda	(Ptr_Lo),y
-	ldy	#Spr_Delta_X_Frac
-	adc	(Ptr_Lo),y
-	ldy	#Spr_X_Pos_Frac
-	sta	(Ptr_Lo),y
+	ldy #Spr_X_Pos_Frac
+	lda (Ptr_Lo),y
+	ldy #Spr_Delta_X_Frac
+	adc (Ptr_Lo),y
+	ldy #Spr_X_Pos_Frac
+	sta (Ptr_Lo),y
 
-	ldy	#Spr_X_Pos_Lo
-	lda	(Ptr_Lo),y
-	ldy	#Spr_Delta_X
-	adc	(Ptr_Lo),y
-	ldy	#Spr_X_Pos_Lo
-	sta	(Ptr_Lo),y
+	ldy #Spr_X_Pos_Lo
+	lda (Ptr_Lo),y
+	ldy #Spr_Delta_X
+	adc (Ptr_Lo),y
+	ldy #Spr_X_Pos_Lo
+	sta (Ptr_Lo),y
 
-	ldy	#Spr_X_Pos_Hi
-	lda	(Ptr_Lo),y
-	ldy	#Spr_Delta_X_Sign
-	adc	(Ptr_Lo),y						; $00 = right, $FF = left
-	ldy	#Spr_X_Pos_Hi
-	sta	(Ptr_Lo),y
-	lda	(Ptr_Lo),y						; Reload to restore N flag (sta does not set N)
+	ldy #Spr_X_Pos_Hi
+	lda (Ptr_Lo),y
+	ldy #Spr_Delta_X_Sign
+	adc (Ptr_Lo),y						; $00 = right, $FF = left
+	ldy #Spr_X_Pos_Hi
+	sta (Ptr_Lo),y
+	lda (Ptr_Lo),y						; Reload to restore N flag (sta does not set N)
 
 ; Left wall: X_Pos_Hi >= $80 means position underflowed past 0
-	bpl	X_Check_Right
-	lda	#$00
-	ldy	#Spr_X_Pos_Hi
-	sta	(Ptr_Lo),y
-	ldy	#Spr_X_Pos_Lo
-	sta	(Ptr_Lo),y
-	ldy	#Spr_X_Pos_Frac
-	sta	(Ptr_Lo),y
-	ldy	#Spr_Delta_X_Sign
-	lda	(Ptr_Lo),y
-	bpl	X_Done							; Already heading right
-	jsr	Reverse_X
-	jmp	X_Done
+	bpl X_Check_Right
+	lda #$00
+	ldy #Spr_X_Pos_Hi
+	sta (Ptr_Lo),y
+	ldy #Spr_X_Pos_Lo
+	sta (Ptr_Lo),y
+	ldy #Spr_X_Pos_Frac
+	sta (Ptr_Lo),y
+	ldy #Spr_Delta_X_Sign
+	lda (Ptr_Lo),y
+	bpl X_Done							; Already heading right
+	jsr Reverse_X
+	jmp X_Done
 
 ; Right wall: clamp if X_Pos > $0120 (320 - 32 = 288)
 X_Check_Right
-	ldy	#Spr_X_Pos_Hi
-	lda	(Ptr_Lo),y
-	cmp	#$01
-	bcc	X_Done							; Hi < $01, in range
-	bne	X_Hit_Right						; Hi > $01, past right edge
-	ldy	#Spr_X_Pos_Lo
-	lda	(Ptr_Lo),y
-	cmp	#$21							; Lo > $20?
-	bcc	X_Done
+	ldy #Spr_X_Pos_Hi
+	lda (Ptr_Lo),y
+	cmp #$01
+	bcc X_Done							; Hi < $01, in range
+	bne X_Hit_Right						; Hi > $01, past right edge
+	ldy #Spr_X_Pos_Lo
+	lda (Ptr_Lo),y
+	cmp #$21							; Lo > $20?
+	bcc X_Done
 X_Hit_Right
-	lda	#$01
-	ldy	#Spr_X_Pos_Hi
-	sta	(Ptr_Lo),y
-	lda	#$20
-	ldy	#Spr_X_Pos_Lo
-	sta	(Ptr_Lo),y
-	lda	#$00
-	ldy	#Spr_X_Pos_Frac
-	sta	(Ptr_Lo),y
-	ldy	#Spr_Delta_X_Sign
-	lda	(Ptr_Lo),y
-	bmi	X_Done							; Already heading left
-	jsr	Reverse_X
+	lda #$01
+	ldy #Spr_X_Pos_Hi
+	sta (Ptr_Lo),y
+	lda #$20
+	ldy #Spr_X_Pos_Lo
+	sta (Ptr_Lo),y
+	lda #$00
+	ldy #Spr_X_Pos_Frac
+	sta (Ptr_Lo),y
+	ldy #Spr_Delta_X_Sign
+	lda (Ptr_Lo),y
+	bmi X_Done							; Already heading left
+	jsr Reverse_X
 X_Done
 
 ;--- Y motion ----------------------------------------------------------------
 	clc
-	ldy	#Spr_Y_Pos_Frac
-	lda	(Ptr_Lo),y
-	ldy	#Spr_Delta_Y_Frac
-	adc	(Ptr_Lo),y
-	ldy	#Spr_Y_Pos_Frac
-	sta	(Ptr_Lo),y
+	ldy #Spr_Y_Pos_Frac
+	lda (Ptr_Lo),y
+	ldy #Spr_Delta_Y_Frac
+	adc (Ptr_Lo),y
+	ldy #Spr_Y_Pos_Frac
+	sta (Ptr_Lo),y
 
-	ldy	#Spr_Y_Pos
-	lda	(Ptr_Lo),y
-	ldy	#Spr_Delta_Y
-	adc	(Ptr_Lo),y
-	ldy	#Spr_Y_Pos
-	sta	(Ptr_Lo),y
+	ldy #Spr_Y_Pos
+	lda (Ptr_Lo),y
+	ldy #Spr_Delta_Y
+	adc (Ptr_Lo),y
+	ldy #Spr_Y_Pos
+	sta (Ptr_Lo),y
 
-	ldy	#Spr_Delta_Y_Sign
-	lda	(Ptr_Lo),y
-	bmi	Y_Check_Top
+	ldy #Spr_Delta_Y_Sign
+	lda (Ptr_Lo),y
+	bmi Y_Check_Top
 
 ; Moving down: clamp if Y_Pos > $D0 (240 - 32 = 208)
 Y_Check_Bottom
-	ldy	#Spr_Y_Pos
-	lda	(Ptr_Lo),y
-	cmp	#$D1
-	bcc	Y_Done
-	lda	#$D0
-	sta	(Ptr_Lo),y
-	lda	#$00
-	ldy	#Spr_Y_Pos_Frac
-	sta	(Ptr_Lo),y
-	ldy	#Spr_Delta_Y_Sign
-	lda	(Ptr_Lo),y
-	bmi	Y_Done							; Already heading up
-	jsr	Reverse_Y
-	jmp	Y_Done
+	ldy #Spr_Y_Pos
+	lda (Ptr_Lo),y
+	cmp #$D1
+	bcc Y_Done
+	lda #$D0
+	sta (Ptr_Lo),y
+	lda #$00
+	ldy #Spr_Y_Pos_Frac
+	sta (Ptr_Lo),y
+	ldy #Spr_Delta_Y_Sign
+	lda (Ptr_Lo),y
+	bmi Y_Done							; Already heading up
+	jsr Reverse_Y
+	jmp Y_Done
 
 ; Moving up: underflow wraps Y_Pos above $D0
 Y_Check_Top
-	ldy	#Spr_Y_Pos
-	lda	(Ptr_Lo),y
-	cmp	#$D1
-	bcc	Y_Done
-	lda	#$00
-	ldy	#Spr_Y_Pos
-	sta	(Ptr_Lo),y
-	ldy	#Spr_Y_Pos_Frac
-	sta	(Ptr_Lo),y
-	ldy	#Spr_Delta_Y_Sign
-	lda	(Ptr_Lo),y
-	bpl	Y_Done							; Already heading down
-	jsr	Reverse_Y
+	ldy #Spr_Y_Pos
+	lda (Ptr_Lo),y
+	cmp #$D1
+	bcc Y_Done
+	lda #$00
+	ldy #Spr_Y_Pos
+	sta (Ptr_Lo),y
+	ldy #Spr_Y_Pos_Frac
+	sta (Ptr_Lo),y
+	ldy #Spr_Delta_Y_Sign
+	lda (Ptr_Lo),y
+	bpl Y_Done							; Already heading down
+	jsr Reverse_Y
 Y_Done
 
 ;--- Compute VBXE address and blit -------------------------------------------
 Skip_Motion								; Jump here to bypass ball motion
-	ldy	#Spr_X_Pos_Lo
-	lda	(Ptr_Lo),y
-	sta	Reg1							; X_Pos_Lo → Calculate_200 input
-	ldy	#Spr_X_Pos_Hi
-	lda	(Ptr_Lo),y
-	sta	Reg2							; X_Pos_Hi → Calculate_200 input
-	ldy	#Spr_Y_Pos
-	lda	(Ptr_Lo),y
-	sta	Reg3							; Y_Pos    → Calculate_200 input
+	ldy #Spr_X_Pos_Lo
+	lda (Ptr_Lo),y
+	sta Reg1							; X_Pos_Lo → Calculate_200 input
+	ldy #Spr_X_Pos_Hi
+	lda (Ptr_Lo),y
+	sta Reg2							; X_Pos_Hi → Calculate_200 input
+	ldy #Spr_Y_Pos
+	lda (Ptr_Lo),y
+	sta Reg3							; Y_Pos    → Calculate_200 input
 
-	jsr	Calculate_200					; → Reg4=Adr0, Reg5=Adr1, Reg6=Adr2
+	jsr Calculate_200					; → Reg4=Adr0, Reg5=Adr1, Reg6=Adr2
 
-	lda	Reg4
-	sta	VBXE_WINDOW+$500+BLT_BALL-BLT_BALL+Dest_Adr0
-	lda	Reg5
-	sta	VBXE_WINDOW+$500+BLT_BALL-BLT_BALL+Dest_Adr1
-	lda	Reg6
-	sta	VBXE_WINDOW+$500+BLT_BALL-BLT_BALL+Dest_Adr2
+	lda Reg4
+	sta VBXE_WINDOW+$500+BLT_BALL-BLT_BALL+Dest_Adr0
+	lda Reg5
+	sta VBXE_WINDOW+$500+BLT_BALL-BLT_BALL+Dest_Adr1
+	lda Reg6
+	sta VBXE_WINDOW+$500+BLT_BALL-BLT_BALL+Dest_Adr2
 
-	jsr	Draw_Sprite						; Wait for blitter idle then fire BLT_BALL
+	jsr Draw_Sprite						; Wait for blitter idle then fire BLT_BALL
 
 ;--- Advance Ptr to next sprite ----------------------------------------------
 	clc
-	lda	Ptr_Lo
-	adc	#Sprite_Size
-	sta	Ptr_Lo
-	bcc	No_Hi_Bump
-	inc	Ptr_Hi
+	lda Ptr_Lo
+	adc #Sprite_Size
+	sta Ptr_Lo
+	bcc No_Hi_Bump
+	inc Ptr_Hi
 No_Hi_Bump
 	inx
-	cpx	Num_Sprites
-	beq	Spr_Loop_Done					; All sprites done
-	jmp	Spr_Loop						; Long branch workaround (loop body > 127 bytes)
+	cpx Num_Sprites
+	beq Spr_Loop_Done					; All sprites done
+	jmp Spr_Loop						; Long branch workaround (loop body > 127 bytes)
 Spr_Loop_Done
-	lda	#$00
-	sta	VBXE_MA_BSEL					; Disable VBXE window
+	lda #$00
+	sta VBXE_MA_BSEL					; Disable VBXE window
 	rts
 
 ;-----------------------------------------------------------------------------
@@ -542,93 +542,93 @@ Spr_Loop_Done
 ; Velocities read from Init_Delta_X/Y tables (unchanged).
 ;-----------------------------------------------------------------------------
 Init_Objects
-	lda	#<Bobs
-	sta	Ptr_Lo
-	lda	#>Bobs
-	sta	Ptr_Hi
-	ldx	#0
+	lda #<Bobs
+	sta Ptr_Lo
+	lda #>Bobs
+	sta Ptr_Hi
+	ldx #0
 
 Init_Spr_L
 	; X position from tables - Frac always 0, Pos_Hi always 0
 	txa
 	tay
-	lda	Init_Pos_X_Lo,y
-	ldy	#Spr_X_Pos_Lo
-	sta	(Ptr_Lo),y
-	lda	#$00
-	ldy	#Spr_X_Pos_Frac
-	sta	(Ptr_Lo),y
-	ldy	#Spr_X_Pos_Hi
-	sta	(Ptr_Lo),y
+	lda Init_Pos_X_Lo,y
+	ldy #Spr_X_Pos_Lo
+	sta (Ptr_Lo),y
+	lda #$00
+	ldy #Spr_X_Pos_Frac
+	sta (Ptr_Lo),y
+	ldy #Spr_X_Pos_Hi
+	sta (Ptr_Lo),y
 
 	; Y position from table - Frac always 0
 	txa
 	tay
-	lda	Init_Pos_Y,y
-	ldy	#Spr_Y_Pos
-	sta	(Ptr_Lo),y
-	lda	#$00
-	ldy	#Spr_Y_Pos_Frac
-	sta	(Ptr_Lo),y
+	lda Init_Pos_Y,y
+	ldy #Spr_Y_Pos
+	sta (Ptr_Lo),y
+	lda #$00
+	ldy #Spr_Y_Pos_Frac
+	sta (Ptr_Lo),y
 
 	; Velocity from tables, indexed directly by object number
 	txa
 	tay
-	lda	Init_Delta_X,y
-	ldy	#Spr_Delta_X
-	sta	(Ptr_Lo),y
+	lda Init_Delta_X,y
+	ldy #Spr_Delta_X
+	sta (Ptr_Lo),y
 
 	txa
 	tay
-	lda	Init_Delta_X_Frac,y
-	ldy	#Spr_Delta_X_Frac
-	sta	(Ptr_Lo),y
+	lda Init_Delta_X_Frac,y
+	ldy #Spr_Delta_X_Frac
+	sta (Ptr_Lo),y
 
-	lda	#$00							; Initially moving right
-	ldy	#Spr_Delta_X_Sign
-	sta	(Ptr_Lo),y
-
-	txa
-	tay
-	lda	Init_Delta_Y,y
-	ldy	#Spr_Delta_Y
-	sta	(Ptr_Lo),y
+	lda #$00							; Initially moving right
+	ldy #Spr_Delta_X_Sign
+	sta (Ptr_Lo),y
 
 	txa
 	tay
-	lda	Init_Delta_Y_Frac,y
-	ldy	#Spr_Delta_Y_Frac
-	sta	(Ptr_Lo),y
+	lda Init_Delta_Y,y
+	ldy #Spr_Delta_Y
+	sta (Ptr_Lo),y
 
-	lda	#$00							; Initially moving down
-	ldy	#Spr_Delta_Y_Sign
-	sta	(Ptr_Lo),y
+	txa
+	tay
+	lda Init_Delta_Y_Frac,y
+	ldy #Spr_Delta_Y_Frac
+	sta (Ptr_Lo),y
+
+	lda #$00							; Initially moving down
+	ldy #Spr_Delta_Y_Sign
+	sta (Ptr_Lo),y
 
 	; Advance struct pointer by Sprite_Size
 	clc
-	lda	Ptr_Lo
-	adc	#Sprite_Size
-	sta	Ptr_Lo
-	bcc	No_PH_Bump
-	inc	Ptr_Hi
+	lda Ptr_Lo
+	adc #Sprite_Size
+	sta Ptr_Lo
+	bcc No_PH_Bump
+	inc Ptr_Hi
 No_PH_Bump
 
 	inx
-	cpx	Num_Sprites
-	bne	Init_Spr_L
+	cpx Num_Sprites
+	bne Init_Spr_L
 	rts
 
 ;-----------------------------------------------------------------------------
 ; Flip_Screen buffers
 ;-----------------------------------------------------------------------------
 Flip_Screen
-	lda	#$80
-	sta	VBXE_MA_BSEL
-	lda	VBXE_WINDOW+$405
-	sta	VBXE_WINDOW+$500+BLT_BALL-BLT_BALL+8
-	sta	VBXE_WINDOW+$500+BLT_BAKGRND-BLT_BALL+8
-	eor	#6								; Flip screen between $20000 and $40000
-	sta	VBXE_WINDOW+$405
+	lda #$80
+	sta VBXE_MA_BSEL
+	lda VBXE_WINDOW+$405
+	sta VBXE_WINDOW+$500+BLT_BALL-BLT_BALL+8
+	sta VBXE_WINDOW+$500+BLT_BAKGRND-BLT_BALL+8
+	eor #6								; Flip screen between $20000 and $40000
+	sta VBXE_WINDOW+$405
 	rts
 ;--------------------------------------------------------
 
@@ -636,17 +636,17 @@ Flip_Screen
 ; Draw_Sprite - fire BLT_BALL; destination already written to BCB by Set_Positions
 ;-----------------------------------------------------------------------------
 Draw_Sprite
-	lda	#BLT_BALL-BLT_BALL
-	sta	VBXE_BL_ADR0
-	lda	#$00
-	sta	VBXE_BL_ADR2
-	lda	#$05
-	sta	VBXE_BL_ADR1
+	lda #BLT_BALL-BLT_BALL
+	sta VBXE_BL_ADR0
+	lda #$00
+	sta VBXE_BL_ADR2
+	lda #$05
+	sta VBXE_BL_ADR1
 Draw_Sprite_L1
-	lda	VBXE_BLITTER_BUSY
-	bne	Draw_Sprite_L1					; Wait for blitter idle
-	lda	#1
-	sta	VBXE_BLITTER_START				; Fire
+	lda VBXE_BLITTER_BUSY
+	bne Draw_Sprite_L1					; Wait for blitter idle
+	lda #1
+	sta VBXE_BLITTER_START				; Fire
 	rts
 
 ;-----------------------------------------------------------------------------
@@ -655,7 +655,7 @@ Draw_Sprite_L1
 Wait_For_Sync							; Hold until VCOUNT == 0
 	bit VCOUNT
 	bmi *-3
-	bit	VCOUNT
+	bit VCOUNT
 	bpl *-3
 ; If present, the next 3 lines will allow a 'jump to exit' on a specific key press
 	lda CH
@@ -670,57 +670,57 @@ Exit_Long
 ; Clear_Screen via blitter
 ;-----------------------------------------------------------------------------
 Clear_Screen
-	lda	#BLT_BAKGRND-BLT_BALL
-	sta	VBXE_BL_ADR0					; Setup the blitter for memory fill operation
-	lda	#0
-	sta	VBXE_BL_ADR2					; See the description of BCB at the end of this
-	lda	#$05							; Source
-	sta	VBXE_BL_ADR1
-	lda	#0
+	lda #BLT_BAKGRND-BLT_BALL
+	sta VBXE_BL_ADR0					; Setup the blitter for memory fill operation
+	lda #0
+	sta VBXE_BL_ADR2					; See the description of BCB at the end of this
+	lda #$05							; Source
+	sta VBXE_BL_ADR1
+	lda #0
 Clear_Screen_L1
-	lda	VBXE_BLITTER_BUSY
-	cmp	#0
-	bne	Clear_Screen_L1					; Wait for blitter to finish
-	lda	#1
-	sta	VBXE_BLITTER_START				; Start the blit
+	lda VBXE_BLITTER_BUSY
+	cmp #0
+	bne Clear_Screen_L1					; Wait for blitter to finish
+	lda #1
+	sta VBXE_BLITTER_START				; Start the blit
 	rts
 
 ;-----------------------------------------------------------------------------
 ; Setup_Cmap1 - Sets byte 4 for all cmap entries via blitter
 ;-----------------------------------------------------------------------------
 Setup_Cmap1
-	lda	#BLT_SETUP_CMAP_1-BLT_BALL
-	sta	VBXE_BL_ADR0					; Setup the blitter for memory fill operation
-	lda	#0
-	sta	VBXE_BL_ADR2					; See the description of BCB at the end of this
-	lda	#$05							; Source
-	sta	VBXE_BL_ADR1
-	lda	#0
+	lda #BLT_SETUP_CMAP_1-BLT_BALL
+	sta VBXE_BL_ADR0					; Setup the blitter for memory fill operation
+	lda #0
+	sta VBXE_BL_ADR2					; See the description of BCB at the end of this
+	lda #$05							; Source
+	sta VBXE_BL_ADR1
+	lda #0
 Setup_Cmap1_L1
-	lda	VBXE_BLITTER_BUSY
-	cmp	#0
-	bne	Setup_Cmap1_L1					; Wait for blitter to finish
-	lda	#1
-	sta	VBXE_BLITTER_START				; Start the blit
+	lda VBXE_BLITTER_BUSY
+	cmp #0
+	bne Setup_Cmap1_L1					; Wait for blitter to finish
+	lda #1
+	sta VBXE_BLITTER_START				; Start the blit
 	rts
 
 ;-----------------------------------------------------------------------------
 ; Setup_Cmap2 - Sets byte 2 for all cmap entries via blitter
 ;-----------------------------------------------------------------------------
 Setup_Cmap2
-	lda	#BLT_SETUP_CMAP_2-BLT_BALL
-	sta	VBXE_BL_ADR0					; Setup the blitter for memory fill operation
-	lda	#0
-	sta	VBXE_BL_ADR2					; See the description of BCB at the end of this
-	lda	#$05							; Source
-	sta	VBXE_BL_ADR1
-	lda	#0
+	lda #BLT_SETUP_CMAP_2-BLT_BALL
+	sta VBXE_BL_ADR0					; Setup the blitter for memory fill operation
+	lda #0
+	sta VBXE_BL_ADR2					; See the description of BCB at the end of this
+	lda #$05							; Source
+	sta VBXE_BL_ADR1
+	lda #0
 Setup_Cmap2_L1
-	lda	VBXE_BLITTER_BUSY
-	cmp	#0
-	bne	Setup_Cmap2_L1					; Wait for blitter to finish
-	lda	#1
-	sta	VBXE_BLITTER_START				; Start the blit
+	lda VBXE_BLITTER_BUSY
+	cmp #0
+	bne Setup_Cmap2_L1					; Wait for blitter to finish
+	lda #1
+	sta VBXE_BLITTER_START				; Start the blit
 	rts
 
 ;-----------------------------------------------------------------------------
@@ -739,12 +739,12 @@ Calculate_200
 	lda VBXE_MA_BSEL
 	pha									; Store it
 
-	lda	#$80							; Bank $00 with global enable (XDL lives in bank $00)
-	sta	VBXE_MA_BSEL
+	lda #$80							; Bank $00 with global enable (XDL lives in bank $00)
+	sta VBXE_MA_BSEL
 
-	lda	VBXE_WINDOW + $405				; XDL Adr2 (byte 5 of XDL at VBXE_WINDOW+$400)
-	eor	#$06							; Flip between $02 ($020000) and $04 ($040000)
-	sta	Reg7							; Reg7 = backbuffer Adr2
+	lda VBXE_WINDOW + $405				; XDL Adr2 (byte 5 of XDL at VBXE_WINDOW+$400)
+	eor #$06							; Flip between $02 ($020000) and $04 ($040000)
+	sta Reg7							; Reg7 = backbuffer Adr2
 
 ; Calculate the start of VRAM (Reg4, Reg5, Reg6) for the given Y-Pos
 	lda #$00
@@ -789,7 +789,7 @@ Setup_DisplayList
 	pha									; Save it
 
 	lda #$00							; Turn off ANTIC DMA
-	sta SDMCTL							; to safely set SDLSTL
+	sta SDMCTL							; To safely set SDLSTL
 
 	lda <Display_List
 	sta SDLSTL
@@ -855,13 +855,13 @@ no_carry
 ;-----------------------------------------------------------------------------
 Setup_Colours
 ; Turn on VBXE window so we can modify the BCB
-	lda	#$80							; Copy some data into VBXE address space (XDL, Blitter control blocks (BCB))
-	sta	VBXE_MA_BSEL
+	lda #$80							; Copy some data into VBXE address space (XDL, Blitter control blocks (BCB))
+	sta VBXE_MA_BSEL
 
 	ldx #$00							; Prepare to loop
 Setup_Colours_L1
 	lda $600,x							; Get the colour
-	sta	VBXE_WINDOW+$554+$10			; BLT_SETUP_CMAP_2 starts at $0554 in VBXE bank 0, XOR Mask is offset $10
+	sta VBXE_WINDOW+$554+$10			; BLT_SETUP_CMAP_2 starts at $0554 in VBXE bank 0, XOR Mask is offset $10
 
 	jsr Setup_Cmap2						; Setup a row of colours
 
@@ -895,31 +895,31 @@ Setup_Colours_L1
 ; X: integer $00-$03 cycles with period 4; frac rotates +$40 each int group
 ; Y: integer offset by 1 ($01-$03,$00); frac rotates +$20 relative to X → no correlation
 Init_Delta_X
-	dta	$01,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03
-	dta	$00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03
-	dta	$00,$01,$02,$03,$00
+	dta $01,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03
+	dta $00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03
+	dta $00,$01,$02,$03,$00
 Init_Delta_X_Frac
-	dta	$00,$40,$80,$C0,$10,$50,$90,$D0,$20,$60,$A0,$E0,$30,$70,$B0,$F0
-	dta	$40,$80,$C0,$00,$50,$90,$D0,$10,$60,$A0,$E0,$20,$70,$B0,$F0,$30
-	dta	$80,$C0,$00,$40,$90
+	dta $00,$40,$80,$C0,$10,$50,$90,$D0,$20,$60,$A0,$E0,$30,$70,$B0,$F0
+	dta $40,$80,$C0,$00,$50,$90,$D0,$10,$60,$A0,$E0,$20,$70,$B0,$F0,$30
+	dta $80,$C0,$00,$40,$90
 Init_Delta_Y
-	dta	$06,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$01,$01,$02,$03,$00
-	dta	$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00
-	dta	$01,$02,$03,$00,$01
+	dta $06,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$01,$01,$02,$03,$00
+	dta $01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00
+	dta $01,$02,$03,$00,$01
 Init_Delta_Y_Frac
-	dta	$00,$60,$A0,$E0,$30,$70,$B0,$F0,$40,$80,$C0,$00,$50,$90,$D0,$10
-	dta	$60,$A0,$E0,$20,$70,$B0,$F0,$30,$80,$C0,$00,$40,$90,$D0,$10,$50
-	dta	$A0,$E0,$20,$60,$B0
+	dta $00,$60,$A0,$E0,$30,$70,$B0,$F0,$40,$80,$C0,$00,$50,$90,$D0,$10
+	dta $60,$A0,$E0,$20,$70,$B0,$F0,$30,$80,$C0,$00,$40,$90,$D0,$10,$50
+	dta $A0,$E0,$20,$60,$B0
 
 ; Standard Atari ROM font for 3 and 7, laid out by hand, then auto-generated tables based on my grid
 Init_Pos_X_Lo
-	dta	$12,$24,$36,$48,$5A,$6C,$A2,$B4,$C6,$D8,$EA,$FC,$48,$5A,$A2,$EA		; Objs $00-$0F
-	dta	$FC,$36,$48,$D8,$EA,$48,$5A,$C6,$D8,$12,$24,$5A,$6C,$B4,$C6,$24		; Objs $10-$1F
-	dta	$36,$48,$5A,$B4,$C6													; Objs $20-$24
+	dta $12,$24,$36,$48,$5A,$6C,$A2,$B4,$C6,$D8,$EA,$FC,$48,$5A,$A2,$EA	; Objs $00-$0F
+	dta $FC,$36,$48,$D8,$EA,$48,$5A,$C6,$D8,$12,$24,$5A,$6C,$B4,$C6,$24	; Objs $10-$1F
+	dta $36,$48,$5A,$B4,$C6				; Objs $20-$24
 Init_Pos_Y
-	dta	$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$1A,$1A,$1A,$1A		; Objs $00-$0F
-	dta	$1A,$27,$27,$27,$27,$34,$34,$34,$34,$41,$41,$41,$41,$41,$41,$4E		; Objs $10-$1F
-	dta	$4E,$4E,$4E,$4E,$4E													; Objs $20-$24
+	dta $0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$1A,$1A,$1A,$1A	; Objs $00-$0F
+	dta $1A,$27,$27,$27,$27,$34,$34,$34,$34,$41,$41,$41,$41,$41,$41,$4E	; Objs $10-$1F
+	dta $4E,$4E,$4E,$4E,$4E				; Objs $20-$24
 
 	org $5900							; Ensure the Display_List is page aligned
 Display_List							; 16 * 15 = 240 lines
