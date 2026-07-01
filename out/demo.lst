@@ -369,17 +369,17 @@ Source: equates.asm
     22 				; Structure Declarations
     23 				;-----------------------------------------------------------------------------
     24 				.struct Sprite
-    25 = 0000				X_Pos_Frac .byte			; Horizontal position (Fractional) sprite1
-    26 = 0001				X_Pos_Lo .byte			; Horizontal position sprite1
-    27 = 0002				X_Pos_Hi .byte			; Horizontal position sprite1 (Valid Values 0-319)
-    28 = 0003				Y_Pos_Frac .byte			; Vertical position (Fractional) sprite1
-    29 = 0004				Y_Pos .byte			; Vertical position sprite1 (valid values 0-239)
-    30 = 0005				Delta_X_Sign .byte			; X-Delta Sign (toggles betwen $00:Right, $FF:Left)
-    31 = 0006				Delta_X_Frac .byte			; Fractional X-Delta
-    32 = 0007				Delta_X .byte			; X-Delta (Valid Values) (+ = move right, - = move left)
-    33 = 0008				Delta_Y_Sign .byte			; Y-Delta Sign (toggles betwen $00:Down, $FF:Up)
-    34 = 0009				Delta_Y_Frac .byte			; Fractional Y-Delta
-    35 = 000A				Delta_Y .byte			; Y-Delta (Valid Values) (+ = move down, - = move up)
+    25 = 0000				X_Pos_Frac .byte					; Horizontal position (Fractional) sprite1
+    26 = 0001				X_Pos_Lo .byte						; Horizontal position sprite1
+    27 = 0002				X_Pos_Hi .byte						; Horizontal position sprite1 (Valid Values 0-319)
+    28 = 0003				Y_Pos_Frac .byte					; Vertical position (Fractional) sprite1
+    29 = 0004				Y_Pos .byte							; Vertical position sprite1 (valid values 0-239)
+    30 = 0005				Delta_X_Sign .byte					; X-Delta Sign (toggles betwen $00:Right, $FF:Left)
+    31 = 0006				Delta_X_Frac .byte					; Fractional X-Delta
+    32 = 0007				Delta_X .byte						; X-Delta (Valid Values) (+ = move right, - = move left)
+    33 = 0008				Delta_Y_Sign .byte					; Y-Delta Sign (toggles betwen $00:Down, $FF:Up)
+    34 = 0009				Delta_Y_Frac .byte					; Fractional Y-Delta
+    35 = 000A				Delta_Y .byte						; Y-Delta (Valid Values) (+ = move down, - = move up)
     36 				.ends
     37
     38 				;-----------------------------------------------------------------------------
@@ -2699,7 +2699,7 @@ Macro: VBSTA [Source: vbxe_min.asm]
      6 322F 8D 5F D6			sta.w VBXE_MA_BSEL
      7 = 3231			vbsta_adr	equ *-1
 Source: demo.asm
-   158 3232				vbsta VBXE_VIDEO_CONTROL				; Disable XDL
+   158 3232				vbsta VBXE_VIDEO_CONTROL			; Disable XDL
 Macro: VBSTA [Source: vbxe_min.asm]
      2 3232 48				pha
      3 3233 A5 92			lda VBXEBase+1
@@ -3648,7 +3648,7 @@ Source: init_vbxe.asm
    210 330D A9 25			lda #MAX_SPRITES_PAL
    211 330F 85 8B			sta Num_Sprites
    212
-   213 3311 A9 00			lda #$00								; Setup VBXE for displaying picture data
+   213 3311 A9 00			lda #$00							; Setup VBXE for displaying picture data
    214 3313				vbsta VBXE_XDL_ADR0					; But don't show the overlay just yet!
 Macro: VBSTA [Source: vbxe_min.asm]
      2 3313 48				pha
@@ -3792,7 +3792,7 @@ Source: demo.asm
    306 33D2 8D FC 02			sta CH								; Clear last key pressed
    307
    308 33D5 A9 00			lda #$00
-   309 33D7				vbsta VBXE_VIDEO_CONTROL				; Disable XDL
+   309 33D7				vbsta VBXE_VIDEO_CONTROL			; Disable XDL
 Macro: VBSTA [Source: vbxe_min.asm]
      2 33D7 48				pha
      3 33D8 A5 92			lda VBXEBase+1
@@ -4202,7 +4202,7 @@ Macro: VBLDA [Source: vbxe_min.asm]
 Source: demo.asm
    647 3604 D0 F6			bne Draw_Sprite_L1					; Wait for blitter idle
    648 3606 A9 01			lda #$01
-   649 3608				vbsta VBXE_BLITTER_START				; Fire
+   649 3608				vbsta VBXE_BLITTER_START			; Fire
 Macro: VBSTA [Source: vbxe_min.asm]
      2 3608 48				pha
      3 3609 A5 92			lda VBXEBase+1
@@ -4276,7 +4276,7 @@ Source: demo.asm
    682 3656 C9 00			cmp #$00
    683 3658 D0 F4			bne Clear_Screen_L1					; Wait for blitter to finish
    684 365A A9 01			lda #$01
-   685 365C				vbsta VBXE_BLITTER_START				; Start the blit
+   685 365C				vbsta VBXE_BLITTER_START			; Start the blit
 Macro: VBSTA [Source: vbxe_min.asm]
      2 365C 48				pha
      3 365D A5 92			lda VBXEBase+1
@@ -4333,7 +4333,7 @@ Source: demo.asm
    701 3695 C9 00			cmp #$00
    702 3697 D0 F4			bne Setup_Cmap1_L1					; Wait for blitter to finish
    703 3699 A9 01			lda #$01
-   704 369B				vbsta VBXE_BLITTER_START				; Start the blit
+   704 369B				vbsta VBXE_BLITTER_START			; Start the blit
 Macro: VBSTA [Source: vbxe_min.asm]
      2 369B 48				pha
      3 369C A5 92			lda VBXEBase+1
@@ -4390,7 +4390,7 @@ Source: demo.asm
    720 36D4 C9 00			cmp #$00
    721 36D6 D0 F4			bne Setup_Cmap2_L1					; Wait for blitter to finish
    722 36D8 A9 01			lda #$01
-   723 36DA				vbsta VBXE_BLITTER_START				; Start the blit
+   723 36DA				vbsta VBXE_BLITTER_START			; Start the blit
 Macro: VBSTA [Source: vbxe_min.asm]
      2 36DA 48				pha
      3 36DB A5 92			lda VBXEBase+1

@@ -22,17 +22,17 @@
 ; Structure Declarations
 ;-----------------------------------------------------------------------------
 .struct Sprite
-	X_Pos_Frac .byte			; Horizontal position (Fractional) sprite1
-	X_Pos_Lo .byte			; Horizontal position sprite1
-	X_Pos_Hi .byte			; Horizontal position sprite1 (Valid Values 0-319)
-	Y_Pos_Frac .byte			; Vertical position (Fractional) sprite1
-	Y_Pos .byte			; Vertical position sprite1 (valid values 0-239)
-	Delta_X_Sign .byte			; X-Delta Sign (toggles betwen $00:Right, $FF:Left)
-	Delta_X_Frac .byte			; Fractional X-Delta
-	Delta_X .byte			; X-Delta (Valid Values) (+ = move right, - = move left)
-	Delta_Y_Sign .byte			; Y-Delta Sign (toggles betwen $00:Down, $FF:Up)
-	Delta_Y_Frac .byte			; Fractional Y-Delta
-	Delta_Y .byte			; Y-Delta (Valid Values) (+ = move down, - = move up)
+	X_Pos_Frac .byte					; Horizontal position (Fractional) sprite1
+	X_Pos_Lo .byte						; Horizontal position sprite1
+	X_Pos_Hi .byte						; Horizontal position sprite1 (Valid Values 0-319)
+	Y_Pos_Frac .byte					; Vertical position (Fractional) sprite1
+	Y_Pos .byte							; Vertical position sprite1 (valid values 0-239)
+	Delta_X_Sign .byte					; X-Delta Sign (toggles betwen $00:Right, $FF:Left)
+	Delta_X_Frac .byte					; Fractional X-Delta
+	Delta_X .byte						; X-Delta (Valid Values) (+ = move right, - = move left)
+	Delta_Y_Sign .byte					; Y-Delta Sign (toggles betwen $00:Down, $FF:Up)
+	Delta_Y_Frac .byte					; Fractional Y-Delta
+	Delta_Y .byte						; Y-Delta (Valid Values) (+ = move down, - = move up)
 .ends
 
 ;-----------------------------------------------------------------------------
@@ -155,7 +155,7 @@ Cleanup_Exit
 
 	lda #MEMAC_GLOBAL_DISABLE			; USE CPU address space
 	vbsta VBXE_MA_BSEL
-	vbsta VBXE_VIDEO_CONTROL				; Disable XDL
+	vbsta VBXE_VIDEO_CONTROL			; Disable XDL
 
 	lda CRSINH_OLD
 	sta CRSINH							; Restore CRSINH
@@ -210,7 +210,7 @@ main
 	lda #MAX_SPRITES_PAL
 	sta Num_Sprites
 
-	lda #$00								; Setup VBXE for displaying picture data
+	lda #$00							; Setup VBXE for displaying picture data
 	vbsta VBXE_XDL_ADR0					; But don't show the overlay just yet!
 	vbsta VBXE_XDL_ADR2
 	lda #$04
@@ -306,7 +306,7 @@ Exit
 	sta CH								; Clear last key pressed
 
 	lda #$00
-	vbsta VBXE_VIDEO_CONTROL				; Disable XDL
+	vbsta VBXE_VIDEO_CONTROL			; Disable XDL
 	lda #$00
 	vbsta VBXE_MA_BSEL					; Restore main memory (and disable VBXE memory window at VBXE_WINDOW)
 
@@ -646,7 +646,7 @@ Draw_Sprite_L1
 	vblda VBXE_BLITTER_BUSY
 	bne Draw_Sprite_L1					; Wait for blitter idle
 	lda #$01
-	vbsta VBXE_BLITTER_START				; Fire
+	vbsta VBXE_BLITTER_START			; Fire
 	rts
 
 ;-----------------------------------------------------------------------------
@@ -682,7 +682,7 @@ Clear_Screen_L1
 	cmp #$00
 	bne Clear_Screen_L1					; Wait for blitter to finish
 	lda #$01
-	vbsta VBXE_BLITTER_START				; Start the blit
+	vbsta VBXE_BLITTER_START			; Start the blit
 	rts
 
 ;-----------------------------------------------------------------------------
@@ -701,7 +701,7 @@ Setup_Cmap1_L1
 	cmp #$00
 	bne Setup_Cmap1_L1					; Wait for blitter to finish
 	lda #$01
-	vbsta VBXE_BLITTER_START				; Start the blit
+	vbsta VBXE_BLITTER_START			; Start the blit
 	rts
 
 ;-----------------------------------------------------------------------------
@@ -720,7 +720,7 @@ Setup_Cmap2_L1
 	cmp #$00
 	bne Setup_Cmap2_L1					; Wait for blitter to finish
 	lda #$01
-	vbsta VBXE_BLITTER_START				; Start the blit
+	vbsta VBXE_BLITTER_START			; Start the blit
 	rts
 
 ;-----------------------------------------------------------------------------
