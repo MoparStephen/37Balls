@@ -7,7 +7,8 @@
 
 ; VRAM is wasting a tremendous amount of space in order for faster & simpler code
 ; Currently, with 256 pixel wide screen:
-;	$00400        = XDL
+;	$00400        = XDL_Attribute (Colour Map on)
+;	$00415        = XDL_Normal (Colour Map off)
 ;	$00500        = BCBs
 ;	$20000        = Screen 1
 ;	$40000        = Screen 2
@@ -64,6 +65,7 @@
 .var SDLSTL_OLD			.byte = $485	; Save the Display List Pointer
 .var SDLSTH_OLD			.byte = $486	; Save the Display List Pointer
 .var Video_Flag			.byte = $487	; PAL = 0, NTSC = 1
+.var Colour_Map_On		.byte = $488	; Non-zero when XDL_Attribute (Colour Map) is the active XDL
 
 ;-----------------------------------------------------------------------------
 ; Rasta Music Tracker Stuff
@@ -128,8 +130,8 @@ Bobs	equ	$5500
 ; Title Screen
 .def	V_0								= $11	; 1 (Screen code used for Version in loading screen)
 .def	V_1								= $10	; 0 (Screen code used for Version in loading screen)
-.def	V_2								= $12	; 2 (Screen code used for Version in loading screen)
-.def	V_3								= $61	; A (Screen code used for Version in loading screen)
+.def	V_2								= $13	; 3 (Screen code used for Version in loading screen)
+.def	V_3								= $00	;   (Screen code used for Version in loading screen)
 
 ;-----------------------------------------------------------------------------
 ; VBXE Helpers
@@ -215,6 +217,9 @@ main
 	sta VBXE_XDL_ADR2
 	lda #$04
 	sta VBXE_XDL_ADR1
+
+	lda #$01
+	sta Colour_Map_On					; XDL_Attribute (Colour Map on) is the active XDL
 
 	lda #$00
 	sta COLOR2							; Set Playfield Black
@@ -628,9 +633,57 @@ Flip_Screen
 	sta VBXE_WINDOW+$500+BLT_BALL-BLT_BALL+8
 	sta VBXE_WINDOW+$500+BLT_BAKGRND-BLT_BALL+8
 	eor #6								; Flip screen between $20000 and $40000
-	sta VBXE_WINDOW+$405
+	sta VBXE_WINDOW+$405				; XDL_Attribute Adr2
+	sta VBXE_WINDOW+$41A				; XDL_Normal Adr2 - kept in sync so Toggle_Colour_Map can't desync buffers
 	rts
 ;--------------------------------------------------------
+
+;-----------------------------------------------------------------------------
+; Toggle_Colour_Map - switches the active XDL between XDL_Attribute and XDL_Normal
+;-----------------------------------------------------------------------------
+Toggle_Colour_Map
+	lda Colour_Map_On
+	bne Toggle_Colour_Map_Off
+	jsr Enable_Colour_Map
+	rts
+Toggle_Colour_Map_Off
+	jsr Disable_Colour_Map
+	rts
+
+;-----------------------------------------------------------------------------
+; Disable_Colour_Map (Point XDL to XDL_Normal, offset $15 from XDL_Attribute)
+;-----------------------------------------------------------------------------
+Disable_Colour_Map
+	lda #$00
+	sta VBXE_XDL_ADR2
+	lda #$04
+	sta VBXE_XDL_ADR1
+	lda #$15
+	sta VBXE_XDL_ADR0
+
+	lda #%00000001						; XDL Enabled and transparent color index 0
+	sta VBXE_VIDEO_CONTROL
+
+	lda #$00
+	sta Colour_Map_On
+	rts
+
+;-----------------------------------------------------------------------------
+; Enable_Colour_Map (Point XDL to XDL_Attribute)
+;-----------------------------------------------------------------------------
+Enable_Colour_Map
+	lda #$00
+	sta VBXE_XDL_ADR0
+	sta VBXE_XDL_ADR2
+	lda #$04
+	sta VBXE_XDL_ADR1
+
+	lda #%00000011						; XDL,XCOLOR Enabled and transparent color index 0
+	sta VBXE_VIDEO_CONTROL
+
+	lda #$01
+	sta Colour_Map_On
+	rts
 
 ;-----------------------------------------------------------------------------
 ; Draw_Sprite - fire BLT_BALL; destination already written to BCB by Set_Positions
@@ -657,12 +710,32 @@ Wait_For_Sync							; Hold until VCOUNT == 0
 	bmi *-3
 	bit VCOUNT
 	bpl *-3
-; If present, the next 3 lines will allow a 'jump to exit' on a specific key press
+
+	jsr Handle_Keys						; Take care of user input
+
+	rts									; Else return to caller
+
+;-----------------------------------------------------------------------------
+; Handle_Keys
+;-----------------------------------------------------------------------------
+Handle_Keys
+; If present, the next lines will allow a "jump to exit" on a specific key press
 	lda CH
 	cmp #$2F							; Press Q to quit
 	beq Exit_Long
-	rts									; Else return to caller
+	cmp #$32							; 0
+	beq Handle_0
+Handle_Keys_Done						; No more keys to test
+	jmp Read_Key_Done
 
+Handle_0
+	jsr Toggle_Colour_Map				; Toggle the Colour Map (Attribute XDL) on/off
+	jmp Read_Key_Done
+
+Read_Key_Done
+	lda #$FF
+	sta CH								; Clear last key pressed
+	rts									; Else return to caller
 Exit_Long
 	jmp Cleanup_Exit					; Fix for branch out of range
 
