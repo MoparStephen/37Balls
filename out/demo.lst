@@ -4240,7 +4240,7 @@ Source: bcbs.asm
    924
    925 				;-----------------------------------------------------------------------------
    926 				; Setup_Colours
-   927 				; Uses the temp table at $600 to setup the Attribute COlour Map
+   927 				; Uses the temp table at $600 to setup the Attribute Colour Map
    928 				;-----------------------------------------------------------------------------
    929 3705			Setup_Colours
    930 				; Turn on VBXE window so we can modify the BCB
