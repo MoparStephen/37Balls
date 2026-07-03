@@ -924,7 +924,7 @@ no_carry
 
 ;-----------------------------------------------------------------------------
 ; Setup_Colours
-; Uses the temp table at $600 to setup the Attribute COlour Map
+; Uses the temp table at $600 to setup the Attribute Colour Map
 ;-----------------------------------------------------------------------------
 Setup_Colours
 ; Turn on VBXE window so we can modify the BCB
