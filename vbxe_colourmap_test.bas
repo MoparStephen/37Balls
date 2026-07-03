@@ -33,7 +33,7 @@
 420 CM2ADR=CM1ADR+$15:REM BLT_SETUP_CMAP_2
 430 CMAPBASE=393216:REM $60000 start of the attribute colour map (>$FFFF, must stay decimal)
 440 CMAPROW=$140:REM bytes per screen line (80 cells * 4 bytes)
-450 WINDOW=$2000:REM CPU-side address the VBXE window maps to
+450 WINDOW=$6000:REM CPU-side address the VBXE window maps to
 460 GOTO 9000
 470 REM
 1000 PROC DetectVBXE
