@@ -320,14 +320,12 @@ Print_VBXE_Detected_L1
 ; Update Progress bar - line 5 (y = $CB + (4 * increment #))
 	ldy Reg1
 	lda #$54							; Screen RAM code for Ctrl+T
+	ldx #$04							; Number of dots to write
+Progress_Bar_Loop
 	sta (Ptr_Lo),y
 	iny
-	sta (Ptr_Lo),y
-	iny
-	sta (Ptr_Lo),y
-	iny
-	sta (Ptr_Lo),y
-	iny
+	dex
+	bne Progress_Bar_Loop
 	sty Reg1							; Save pointer for progress bar updates
 
 	rts									; Return controll to loader
@@ -359,16 +357,12 @@ Print_Clearing_Message_L1
 ; Update Progress bar - line 5 (y = $CB + (5 * increment #))
 	ldy Reg1
 	lda #$54							; Screen RAM code for Ctrl+T
+	ldx #$05							; Number of dots to write
+Progress_Bar_Loop
 	sta (Ptr_Lo),y
 	iny
-	sta (Ptr_Lo),y
-	iny
-	sta (Ptr_Lo),y
-	iny
-	sta (Ptr_Lo),y
-	iny
-	sta (Ptr_Lo),y
-	iny
+	dex
+	bne Progress_Bar_Loop
 	sty Reg1							; Save pointer for progress bar updates
 
 ; Set the base address of MEMA window to VBXE_WINDOW
@@ -445,14 +439,12 @@ Print_Load_XDL_Message_L1
 ; Update Progress bar - line 5 (y = $CB + (4 * increment #))
 	ldy Reg1
 	lda #$54							; Screen RAM code for Ctrl+T
+	ldx #$04							; Number of dots to write
+Progress_Bar_Loop
 	sta (Ptr_Lo),y
 	iny
-	sta (Ptr_Lo),y
-	iny
-	sta (Ptr_Lo),y
-	iny
-	sta (Ptr_Lo),y
-	iny
+	dex
+	bne Progress_Bar_Loop
 	sty Reg1							; Save pointer for progress bar updates
 
 	rts									; Return controll to loader
@@ -488,16 +480,12 @@ Print_Load_BCB_Message_L1
 ; Update Progress bar - line 5 (y = $CB + (5 * increment #))
 	ldy Reg1
 	lda #$54							; Screen RAM code for Ctrl+T
+	ldx #$05							; Number of dots to write
+Progress_Bar_Loop
 	sta (Ptr_Lo),y
 	iny
-	sta (Ptr_Lo),y
-	iny
-	sta (Ptr_Lo),y
-	iny
-	sta (Ptr_Lo),y
-	iny
-	sta (Ptr_Lo),y
-	iny
+	dex
+	bne Progress_Bar_Loop
 	sty Reg1							; Save pointer for progress bar updates
 
 	rts									; Return controll to loader
@@ -533,14 +521,12 @@ Print_Load_Palette_Message_L1
 ; Update Progress bar - line 5 (y = $CB + (4 * increment #))
 	ldy Reg1
 	lda #$54							; Screen RAM code for Ctrl+T
+	ldx #$04							; Number of dots to write
+Progress_Bar_Loop
 	sta (Ptr_Lo),y
 	iny
-	sta (Ptr_Lo),y
-	iny
-	sta (Ptr_Lo),y
-	iny
-	sta (Ptr_Lo),y
-	iny
+	dex
+	bne Progress_Bar_Loop
 	sty Reg1							; Save pointer for progress bar updates
 
 	mwa #Palette Y_Register
@@ -577,16 +563,12 @@ Print_Load_Ball_Message_L1
 ; Update Progress bar - line 5 (y = $CB + (5 * increment #))
 	ldy Reg1
 	lda #$54							; Screen RAM code for Ctrl+T
+	ldx #$05							; Number of dots to write
+Progress_Bar_Loop
 	sta (Ptr_Lo),y
 	iny
-	sta (Ptr_Lo),y
-	iny
-	sta (Ptr_Lo),y
-	iny
-	sta (Ptr_Lo),y
-	iny
-	sta (Ptr_Lo),y
-	iny
+	dex
+	bne Progress_Bar_Loop
 	sty Reg1							; Save pointer for progress bar updates
 
 	rts									; Return controll to loader
@@ -619,14 +601,12 @@ Load_Background_Message_L1
 ; Update Progress bar - line 5 (y = $CB + (4 * increment #))
 	ldy Reg1
 	lda #$54							; Screen RAM code for Ctrl+T
+	ldx #$04							; Number of dots to write
+Progress_Bar_Loop
 	sta (Ptr_Lo),y
 	iny
-	sta (Ptr_Lo),y
-	iny
-	sta (Ptr_Lo),y
-	iny
-	sta (Ptr_Lo),y
-	iny
+	dex
+	bne Progress_Bar_Loop
 	sty Reg1							; Save pointer for progress bar updates
 
 	rts									; Return controll to loader
@@ -659,16 +639,12 @@ Wait_Key_Message_L1
 ; Update Progress bar - line 5 (y = $CB + (5 * increment #))
 	ldy Reg1
 	lda #$54							; Screen RAM code for Ctrl+T
+	ldx #$05							; Number of dots to write
+Progress_Bar_Loop
 	sta (Ptr_Lo),y
 	iny
-	sta (Ptr_Lo),y
-	iny
-	sta (Ptr_Lo),y
-	iny
-	sta (Ptr_Lo),y
-	iny
-	sta (Ptr_Lo),y
-	iny
+	dex
+	bne Progress_Bar_Loop
 	sty Reg1							; Save pointer for progress bar updates
 
 Wait_For_Key_Exit
