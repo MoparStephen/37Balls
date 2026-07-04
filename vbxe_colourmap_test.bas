@@ -36,7 +36,7 @@
 425 BALLADR=CM2ADR+$15:REM BLT_BALL
 427 PALADR=$1000:REM bank 1 - Palette.pal (768 bytes: 256 RGB triplets)
 430 CMAPBASE=393216:REM $60000 start of the attribute colour map (>$FFFF, must stay decimal)
-440 CMAPROW=$140:REM bytes per screen line (80 cells * 4 bytes)
+440 CMAPROW=$28:REM bytes per screen line (10 cells * 4 bytes)
 450 WINDOW=$6000:REM CPU-side address the VBXE window maps to
 455 DIM COLTAB(239):REM per-object colour table (Generate_Colour_Map's $0600 table)
 457 REM ---- ANTIC/OS shadow registers (plain CPU addresses, no VBXE window) ----
@@ -256,17 +256,17 @@
 2610 REM
 5000 REM XDL_Attribute (21 bytes) + XDL_Normal (12 bytes) - see xdl.asm
 5010 DATA 106,14,238,0,0,2,0,2,0,0,6
-5020 DATA 64,1,0,0,31,0,17,255,0,128
+5020 DATA 40,0,0,0,31,0,17,255,0,128
 5030 DATA 114,8,238,0,0,2,0,2,17,255,0,128
 5100 REM BLT_CLEAR (21 bytes) - see bcbs.asm
 5110 DATA 0,0,0,0,0,0,255,191,7,128,240
 5120 DATA 255,239,1,15,0,0,0,119,0,0
 5200 REM BLT_SETUP_CMAP_1 (21 bytes) - see bcbs.asm
-5210 DATA 0,0,0,0,0,0,3,0,6,64,1
-5220 DATA 4,63,1,239,0,80,0,0,0,0
+5210 DATA 0,0,0,0,0,0,3,0,6,40,0
+5220 DATA 4,9,0,239,0,80,0,0,0,0
 5300 REM BLT_SETUP_CMAP_2 (21 bytes) - see bcbs.asm
-5310 DATA 0,0,0,0,0,0,1,0,6,64,1
-5320 DATA 4,39,0,0,0,105,0,0,0,0
+5310 DATA 0,0,0,0,0,0,1,0,6,40,0
+5320 DATA 4,9,0,0,0,105,0,0,0,0
 5400 REM BLT_BALL (21 bytes) - see bcbs.asm
 5410 DATA 0,0,1,32,0,1,0,0,2,0,2
 5420 DATA 1,31,0,31,255,0,0,0,0,1

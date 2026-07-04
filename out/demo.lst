@@ -3199,7 +3199,7 @@ Source: xdl.asm
      4 2400-2420> 6A 0E			dta %01101010,%00001110				; XDLC (2 Bytes)
      5 2402 EE				dta $EE								; XDLC_RPTL (1 byte)
      6 2403 00 00 02 00 02		dta $00,$00,$02,$00,$02				; XDLC_OVADR (5 bytes)
-     7 2408 00 00 06 40 01		dta $00,$00,$06,$40,$01				; XDLC_MAPADR (5 bytes)
+     7 2408 00 00 06 28 00		dta $00,$00,$06,$28,$00				; XDLC_MAPADR (5 bytes)
      8 240D 00 00 1F 00			dta $00,$00,$1F,$00					; XDLC_MAPPAR (4 bytes)
      9 2411 11 FF			dta %00010001,$FF					; XDLC_OVATT (2 bytes)
     10 				;		 76543210  76543210
@@ -3307,44 +3307,45 @@ Source: bcbs.asm
     48 253D 00				dta $00								; Pattern feature
     49 253E 00				dta $00								; Control (Mode 0 with NEXT bit Cleared)
     50
-    51 				; Fill the ColourMap area ($60000-$72BFF) with $50 every 4 bytes
+    51 				; Fill the ColourMap area ($60000-$62580, 9600 bytes) with $50 every 4 bytes
     52 				; This sets up the Palette & Priority bytes for the entire Colour Map
-    53 253F			BLT_SETUP_CMAP_1
-    54 253F 00 00 00			dta $00,$00,$00						; Source address
-    55 2542 00 00			dta $00,$00							; Source step y
-    56 2544 00				dta $00								; Source step x
-    57 2545 03 00 06			dta $03,$00,$06						; Destination address ($60003)
-    58 2548 40 01			dta $40,$01							; Destination step y
-    59 254A 04				dta $04								; Destination step x
-    60 254B 3F 01			dta $3F,$01							; Width ($140)
-    61 254D EF				dta $EF								; Height ($F0)
-    62 254E 00				dta $00								; And mask
-    63 254F 50				dta $50								; Xor mask
-    64 2550 00				dta $00								; Collision and mask
-    65 2551 00				dta $00								; Zoom
-    66 2552 00				dta $00								; Pattern feature
-    67 2553 00				dta $00								; Control
-    68
-    69 				; Fill the ColourMap area with a single line ($140 bytes) of
-    70 				; Local substitute of the COLPF1 register (GTIA)
-    71 				; This BCB gets modified before each call
-    72 				; Starting address increments by $140 each time
-    73 				; Xor mask pulls values from the temp table at $0600
-    74 2554			BLT_SETUP_CMAP_2
-    75 2554 00 00 00			dta $00,$00,$00						; Source address
-    76 2557 00 00			dta $00,$00							; Source step y
-    77 2559 00				dta $00								; Source step x
-    78 255A 01 00 06			dta $01,$00,$06						; Destination address ($60001)
-    79 255D 40 01			dta $40,$01							; Destination step y
-    80 255F 04				dta $04								; Destination step x
-    81 2560 27 00			dta $27,$00							; Width ($28)
-    82 2562 00				dta $00								; Height ($01)
-    83 2563 00				dta $00								; And mask
-    84 2564 69				dta $69								; Xor mask
-    85 2565 00				dta $00								; Collision and mask
-    86 2566 00				dta $00								; Zoom
-    87 2567 00				dta $00								; Pattern feature
-    88 2568 00				dta $00								; Control
+    53 				; 10 cells/line (32-pixel cells) x 4 bytes/cell = $28 bytes/line, 240 lines
+    54 253F			BLT_SETUP_CMAP_1
+    55 253F 00 00 00			dta $00,$00,$00						; Source address
+    56 2542 00 00			dta $00,$00							; Source step y
+    57 2544 00				dta $00								; Source step x
+    58 2545 03 00 06			dta $03,$00,$06						; Destination address ($60003)
+    59 2548 28 00			dta $28,$00							; Destination step y ($28 bytes/line)
+    60 254A 04				dta $04								; Destination step x
+    61 254B 09 00			dta $09,$00							; Width (9 = 10 cells/line, count-1)
+    62 254D EF				dta $EF								; Height ($F0)
+    63 254E 00				dta $00								; And mask
+    64 254F 50				dta $50								; Xor mask
+    65 2550 00				dta $00								; Collision and mask
+    66 2551 00				dta $00								; Zoom
+    67 2552 00				dta $00								; Pattern feature
+    68 2553 00				dta $00								; Control
+    69
+    70 				; Fill the ColourMap area with a single line ($28 bytes) of
+    71 				; Local substitute of the COLPF1 register (GTIA)
+    72 				; This BCB gets modified before each call
+    73 				; Starting address increments by $28 each time
+    74 				; Xor mask pulls values from the temp table at $0600
+    75 2554			BLT_SETUP_CMAP_2
+    76 2554 00 00 00			dta $00,$00,$00						; Source address
+    77 2557 00 00			dta $00,$00							; Source step y
+    78 2559 00				dta $00								; Source step x
+    79 255A 01 00 06			dta $01,$00,$06						; Destination address ($60001)
+    80 255D 28 00			dta $28,$00							; Destination step y ($28 bytes/line)
+    81 255F 04				dta $04								; Destination step x
+    82 2560 09 00			dta $09,$00							; Width (9 = 10 cells/line, count-1)
+    83 2562 00				dta $00								; Height ($01)
+    84 2563 00				dta $00								; And mask
+    85 2564 69				dta $69								; Xor mask
+    86 2565 00				dta $00								; Collision and mask
+    87 2566 00				dta $00								; Zoom
+    88 2567 00				dta $00								; Pattern feature
+    89 2568 00				dta $00								; Control
    502 = 0069			BLT_Length	equ *-BCB_START
    503
    504 				; Step $07 - Load VBXE Palette #1
@@ -4257,11 +4258,11 @@ Source: bcbs.asm
    941 				; Now we must do a 24-bit addition to get the next Destination Address (offset 6,7,8)
    942 3715 18				clc
    943 3716 AD 5A 25			lda VBXE_WINDOW+$554+$06			; Dest Addr 2
-   944 3719 69 40			adc #$40
+   944 3719 69 28			adc #$28							; Advance by one line ($28 bytes/line)
    945 371B 8D 5A 25			sta VBXE_WINDOW+$554+$06			; Dest Addr 2
    946
    947 371E AD 5B 25			lda VBXE_WINDOW+$554+$07			; Dest Addr 1
-   948 3721 69 01			adc #$01
+   948 3721 69 00			adc #$00
    949 3723 8D 5B 25			sta VBXE_WINDOW+$554+$07			; Dest Addr 1
    950
    951 3726 AD 5C 25			lda VBXE_WINDOW+$554+$08			; Dest Addr 0

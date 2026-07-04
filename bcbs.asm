@@ -48,16 +48,17 @@ BLT_CLEAR
 	dta $00								; Pattern feature
 	dta $00								; Control (Mode 0 with NEXT bit Cleared)
 
-; Fill the ColourMap area ($60000-$72BFF) with $50 every 4 bytes
+; Fill the ColourMap area ($60000-$62580, 9600 bytes) with $50 every 4 bytes
 ; This sets up the Palette & Priority bytes for the entire Colour Map
+; 10 cells/line (32-pixel cells) x 4 bytes/cell = $28 bytes/line, 240 lines
 BLT_SETUP_CMAP_1
 	dta $00,$00,$00						; Source address
 	dta $00,$00							; Source step y
 	dta $00								; Source step x
 	dta $03,$00,$06						; Destination address ($60003)
-	dta $40,$01							; Destination step y
+	dta $28,$00							; Destination step y ($28 bytes/line)
 	dta $04								; Destination step x
-	dta $3F,$01							; Width ($140)
+	dta $09,$00							; Width (9 = 10 cells/line, count-1)
 	dta $EF								; Height ($F0)
 	dta $00								; And mask
 	dta $50								; Xor mask
@@ -66,19 +67,19 @@ BLT_SETUP_CMAP_1
 	dta $00								; Pattern feature
 	dta $00								; Control
 
-; Fill the ColourMap area with a single line ($140 bytes) of
+; Fill the ColourMap area with a single line ($28 bytes) of
 ; Local substitute of the COLPF1 register (GTIA)
 ; This BCB gets modified before each call
-; Starting address increments by $140 each time
+; Starting address increments by $28 each time
 ; Xor mask pulls values from the temp table at $0600
 BLT_SETUP_CMAP_2
 	dta $00,$00,$00						; Source address
 	dta $00,$00							; Source step y
 	dta $00								; Source step x
 	dta $01,$00,$06						; Destination address ($60001)
-	dta $40,$01							; Destination step y
+	dta $28,$00							; Destination step y ($28 bytes/line)
 	dta $04								; Destination step x
-	dta $27,$00							; Width ($28)
+	dta $09,$00							; Width (9 = 10 cells/line, count-1)
 	dta $00								; Height ($01)
 	dta $00								; And mask
 	dta $69								; Xor mask

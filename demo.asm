@@ -941,11 +941,11 @@ Setup_Colours_L1
 ; Now we must do a 24-bit addition to get the next Destination Address (offset 6,7,8)
 	clc
 	lda VBXE_WINDOW+$554+$06			; Dest Addr 2
-	adc #$40
+	adc #$28							; Advance by one line ($28 bytes/line)
 	sta VBXE_WINDOW+$554+$06			; Dest Addr 2
 
 	lda VBXE_WINDOW+$554+$07			; Dest Addr 1
-	adc #$01
+	adc #$00
 	sta VBXE_WINDOW+$554+$07			; Dest Addr 1
 
 	lda VBXE_WINDOW+$554+$08			; Dest Addr 0
