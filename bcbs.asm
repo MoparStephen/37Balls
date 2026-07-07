@@ -62,7 +62,7 @@ BLT_SETUP_CMAP_1
 	dta $09,$00							; Width (9 = 10 cells/line, count-1)
 	dta $EF								; Height ($F0)
 	dta $00								; And mask
-	dta $50								; Xor mask ($50 = PF & OVL Palette 1)
+	dta $53								; Xor mask ($50 = PF & OVL Palette 1)
 	dta $00								; Collision and mask
 	dta $00								; Zoom
 	dta $00								; Pattern feature

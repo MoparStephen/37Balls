@@ -2083,7 +2083,7 @@ Source: demo.asm
    129 = 0014			.def	Blt_Ctrl						= $14
    130
    131 				; Title Screen
-   132 = 0000			.def	V_0								= $00	;   (Screen code used for Version in loading screen)
+   132 = 0001			.def	V_0								= $01	;   (Screen code used for Version in loading screen)
    133 = 0024			.def	V_1								= $24	; D (Screen code used for Version in loading screen)
    134 = 0022			.def	V_2								= $22	; B (Screen code used for Version in loading screen)
    135 = 0027			.def	V_3								= $27	; G (Screen code used for Version in loading screen)
@@ -3323,7 +3323,7 @@ Source: bcbs.asm
     62 254B 09 00			dta $09,$00							; Width (9 = 10 cells/line, count-1)
     63 254D EF				dta $EF								; Height ($F0)
     64 254E 00				dta $00								; And mask
-    65 254F 50				dta $50								; Xor mask ($50 = PF & OVL Palette 1)
+    65 254F 53				dta $53								; Xor mask ($50 = PF & OVL Palette 1)
     66 2550 00				dta $00								; Collision and mask
     67 2551 00				dta $00								; Zoom
     68 2552 00				dta $00								; Pattern feature
@@ -3470,7 +3470,7 @@ Source: bcbs.asm
    620 					org SCREEN_RAM						; Load data directly into CPU RAM
    621 8000			FujiGraphics_Mono
    622 					; ins 'Assets\Fuji_Mono.raw'			; $520 bytes
-   623 8000-8207> FF FF FF FF + 	ins 'Assets\Solid.raw'				; $520 bytes
+   623 8000-8257> FF FF FF FF + 	ins 'Assets\Solid.raw'				; $520 bytes
    624
    625 				; Step $0A - Display final message and wait for key
    626 					org LOAD_ADDRESS + $300
@@ -3522,7 +3522,7 @@ Source: bcbs.asm
    202 				;-----------------------------------------------------------------------------
    203 3300			main
    204 				; Setup RMT
-   205 3300-3844> A2 18			ldx #<music.module
+   205 3300-381D> A2 18			ldx #<music.module
    206 3302 A0 47			ldy #>music.module
    207 3304 A9 00			lda #$00
    208 3306 20 00 44			jsr music.init_song
@@ -3879,7 +3879,7 @@ Source: bcbs.asm
    559 					; X position from tables - Frac always 0, Pos_Hi always 0
    560 351C 8A				txa
    561 351D A8				tay
-   562 351E B9 FB 37			lda Init_Pos_X_Lo,y
+   562 351E B9 D4 37			lda Init_Pos_X_Lo,y
    563 3521 A0 01			ldy #Spr_X_Pos_Lo
    564 3523 91 88			sta (Ptr_Lo),y
    565 3525 A9 00			lda #$00
@@ -3891,7 +3891,7 @@ Source: bcbs.asm
    571 					; Y position from table - Frac always 0
    572 352F 8A				txa
    573 3530 A8				tay
-   574 3531 B9 20 38			lda Init_Pos_Y,y
+   574 3531 B9 F9 37			lda Init_Pos_Y,y
    575 3534 A0 04			ldy #Spr_Y_Pos
    576 3536 91 88			sta (Ptr_Lo),y
    577 3538 A9 00			lda #$00
@@ -3901,13 +3901,13 @@ Source: bcbs.asm
    581 					; Velocity from tables, indexed directly by object number
    582 353E 8A				txa
    583 353F A8				tay
-   584 3540 B9 67 37			lda Init_Delta_X,y
+   584 3540 B9 40 37			lda Init_Delta_X,y
    585 3543 A0 07			ldy #Spr_Delta_X
    586 3545 91 88			sta (Ptr_Lo),y
    587
    588 3547 8A				txa
    589 3548 A8				tay
-   590 3549 B9 8C 37			lda Init_Delta_X_Frac,y
+   590 3549 B9 65 37			lda Init_Delta_X_Frac,y
    591 354C A0 06			ldy #Spr_Delta_X_Frac
    592 354E 91 88			sta (Ptr_Lo),y
    593
@@ -3917,13 +3917,13 @@ Source: bcbs.asm
    597
    598 3556 8A				txa
    599 3557 A8				tay
-   600 3558 B9 B1 37			lda Init_Delta_Y,y
+   600 3558 B9 8A 37			lda Init_Delta_Y,y
    601 355B A0 0A			ldy #Spr_Delta_Y
    602 355D 91 88			sta (Ptr_Lo),y
    603
    604 355F 8A				txa
    605 3560 A8				tay
-   606 3561 B9 D6 37			lda Init_Delta_Y_Frac,y
+   606 3561 B9 AF 37			lda Init_Delta_Y_Frac,y
    607 3564 A0 09			ldy #Spr_Delta_Y_Frac
    608 3566 91 88			sta (Ptr_Lo),y
    609
@@ -4233,94 +4233,94 @@ Source: bcbs.asm
    913 				; This will generate the 9600 byte colour map used by the VBXE
    914 				;-----------------------------------------------------------------------------
    915 36FC			Generate_Colour_Map
-   916 36FC A9 00			lda #$00
-   917 36FE 85 88			sta Ptr_Lo
-   918 3700 A9 06			lda #$06
-   919 3702 85 89			sta Ptr_Hi							; Initialize destination pointer to $0600
+   916 				; 	lda #$00
+   917 				; 	sta Ptr_Lo
+   918 				; 	lda #$06
+   919 				; 	sta Ptr_Hi							; Initialize destination pointer to $0600
    920
-   921 3704 A9 01			lda #$01
-   922 3706 85 80			sta Reg1							; Running colour accumulator
+   921 				; 	lda #$01
+   922 				; 	sta Reg1							; Running colour accumulator
    923
-   924 3708 A2 00			ldx #$00							; Object counter (0-15)
-   925 370A			obj_loop
-   926 370A A0 00			ldy #$00							; Row counter (0-14)
-   927 370C			row_loop
-   928 370C A9 00			lda #$00							; Default: blank row
-   929 370E C0 00			cpy #$00
-   930 3710 F0 08			beq store_colour
-   931 3712 C0 0E			cpy #$0E
-   932 3714 F0 04			beq store_colour
-   933 3716 A5 80			lda Reg1							; Non-blank row: use accumulator
-   934 3718 E6 80			inc Reg1
-   935 371A			store_colour
-   936 371A 91 88			sta (Ptr_Lo),Y
+   924 				; 	ldx #$00							; Object counter (0-15)
+   925 				; obj_loop
+   926 				; 	ldy #$00							; Row counter (0-14)
+   927 				; row_loop
+   928 				; 	lda #$00							; Default: blank row
+   929 				; 	cpy #$00
+   930 				; 	beq store_colour
+   931 				; 	cpy #$0E
+   932 				; 	beq store_colour
+   933 				; 	lda Reg1							; Non-blank row: use accumulator
+   934 				; 	inc Reg1
+   935 				; store_colour
+   936 				; 	sta (Ptr_Lo),Y
    937
-   938 371C C8				iny
-   939 371D C0 0F			cpy #$0F							; 15 rows per object
-   940 371F D0 EB			bne row_loop
+   938 				; 	iny
+   939 				; 	cpy #$0F							; 15 rows per object
+   940 				; 	bne row_loop
    941
-   942 				; Advance pointer by 15 to next object's base
-   943 3721 A5 88			lda Ptr_Lo
-   944 3723 18				clc
-   945 3724 69 0F			adc #$0F
-   946 3726 85 88			sta Ptr_Lo
-   947 3728 90 02			bcc no_carry
-   948 372A E6 89			inc Ptr_Hi
-   949 372C			no_carry
-   950 372C E8				inx
-   951 372D E0 10			cpx #$10							; 16 objects
-   952 372F D0 D9			bne obj_loop
+   942 				; ; Advance pointer by 15 to next object's base
+   943 				; 	lda Ptr_Lo
+   944 				; 	clc
+   945 				; 	adc #$0F
+   946 				; 	sta Ptr_Lo
+   947 				; 	bcc no_carry
+   948 				; 	inc Ptr_Hi
+   949 				; no_carry
+   950 				; 	inx
+   951 				; 	cpx #$10							; 16 objects
+   952 				; 	bne obj_loop
    953
-   954 				; ; For debugging, skip all the 0 entries
-   955 				; 	ldx #$EF
-   956 				; Generate_Colour_Map_L1
-   957 				; 	txa									; Set $600-$6EF equal to
-   958 				; 	sta $0600,x							; $00-$EF
-   959 				; 	dex
-   960 				; 	bne Generate_Colour_Map_L1
-   961 				; 	lda #$00
-   962 				; 	sta $0600							; Pickup the final save
+   954 				; For debugging, skip all the 0 entries
+   955 36FC A2 EF			ldx #$EF
+   956 36FE			Generate_Colour_Map_L1
+   957 36FE 8A				txa									; Set $600-$6EF equal to
+   958 36FF 9D 00 06			sta $0600,x							; $00-$EF
+   959 3702 CA				dex
+   960 3703 D0 F9			bne Generate_Colour_Map_L1
+   961 3705 A9 00			lda #$00
+   962 3707 8D 00 06			sta $0600							; Pickup the final save
    963
-   964 3731 20 68 36			jsr Setup_Cmap1						; Setup the Palette & Priority bits
-   965 3734 20 38 37			jsr Setup_Colours
+   964 370A 20 68 36			jsr Setup_Cmap1						; Setup the Palette & Priority bits
+   965 370D 20 11 37			jsr Setup_Colours
    966
-   967 3737 60				rts
+   967 3710 60				rts
    968
    969 				;-----------------------------------------------------------------------------
    970 				; Setup_Colours
    971 				; Uses the temp table at $600 to setup the Attribute Colour Map
    972 				;-----------------------------------------------------------------------------
-   973 3738			Setup_Colours
+   973 3711			Setup_Colours
    974 				; Turn on VBXE window so we can modify the BCB
-   975 3738 A9 80			lda #$80							; Copy some data into VBXE address space (XDL, Blitter control blocks (BCB))
-   976 373A 8D 5F D6			sta VBXE_MA_BSEL
+   975 3711 A9 80			lda #$80							; Copy some data into VBXE address space (XDL, Blitter control blocks (BCB))
+   976 3713 8D 5F D6			sta VBXE_MA_BSEL
    977
-   978 373D A2 00			ldx #$00							; Prepare to loop
-   979 373F			Setup_Colours_L1
-   980 373F BD 00 06			lda $600,x							; Get the colour
-   981 3742 8D 64 25			sta VBXE_WINDOW+$554+$10			; BLT_SETUP_CMAP_2 starts at $0554 in VBXE bank 0, XOR Mask is offset $10
+   978 3716 A2 00			ldx #$00							; Prepare to loop
+   979 3718			Setup_Colours_L1
+   980 3718 BD 00 06			lda $600,x							; Get the colour
+   981 371B 8D 64 25			sta VBXE_WINDOW+$554+$10			; BLT_SETUP_CMAP_2 starts at $0554 in VBXE bank 0, XOR Mask is offset $10
    982
-   983 3745 20 86 36			jsr Setup_Cmap2						; Setup a row of colours
+   983 371E 20 86 36			jsr Setup_Cmap2						; Setup a row of colours
    984
    985 				; Now we must do a 24-bit addition to get the next Destination Address (offset 6,7,8)
-   986 3748 18				clc
-   987 3749 AD 5A 25			lda VBXE_WINDOW+$554+$06			; Dest Addr 2
-   988 374C 69 28			adc #$28							; Advance by one line ($28 bytes/line)
-   989 374E 8D 5A 25			sta VBXE_WINDOW+$554+$06			; Dest Addr 2
+   986 3721 18				clc
+   987 3722 AD 5A 25			lda VBXE_WINDOW+$554+$06			; Dest Addr 2
+   988 3725 69 28			adc #$28							; Advance by one line ($28 bytes/line)
+   989 3727 8D 5A 25			sta VBXE_WINDOW+$554+$06			; Dest Addr 2
    990
-   991 3751 AD 5B 25			lda VBXE_WINDOW+$554+$07			; Dest Addr 1
-   992 3754 69 00			adc #$00
-   993 3756 8D 5B 25			sta VBXE_WINDOW+$554+$07			; Dest Addr 1
+   991 372A AD 5B 25			lda VBXE_WINDOW+$554+$07			; Dest Addr 1
+   992 372D 69 00			adc #$00
+   993 372F 8D 5B 25			sta VBXE_WINDOW+$554+$07			; Dest Addr 1
    994
-   995 3759 AD 5C 25			lda VBXE_WINDOW+$554+$08			; Dest Addr 0
-   996 375C 69 00			adc #$00
-   997 375E 8D 5C 25			sta VBXE_WINDOW+$554+$08			; Dest Addr 1
+   995 3732 AD 5C 25			lda VBXE_WINDOW+$554+$08			; Dest Addr 0
+   996 3735 69 00			adc #$00
+   997 3737 8D 5C 25			sta VBXE_WINDOW+$554+$08			; Dest Addr 1
    998
-   999 3761 E8				inx
-  1000 3762 E0 EF			cpx #$EF
-  1001 3764 D0 D9			bne Setup_Colours_L1
+   999 373A E8				inx
+  1000 373B E0 EF			cpx #$EF
+  1001 373D D0 D9			bne Setup_Colours_L1
   1002
-  1003 3766 60				rts
+  1003 373F 60				rts
   1004 				;-----------------------------------------------------------------------------
   1005 				; Subroutines END
   1006 				;-----------------------------------------------------------------------------
@@ -4331,42 +4331,41 @@ Source: bcbs.asm
   1011 				; 37 velocity patterns - one per sprite, every (int,frac) pair unique
   1012 				; X: integer $00-$03 cycles with period 4; frac rotates +$40 each int group
   1013 				; Y: integer offset by 1 ($01-$03,$00); frac rotates +$20 relative to X → no correlation
-  1014 3767			Init_Delta_X
-  1015 3767 01 01 02 03 00 01 + 	dta $01,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03
-  1016 3777 00 01 02 03 00 01 + 	dta $00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03
-  1017 3787 00 01 02 03 00		dta $00,$01,$02,$03,$00
-  1018 378C			Init_Delta_X_Frac
-  1019 378C 00 40 80 C0 10 50 + 	dta $00,$40,$80,$C0,$10,$50,$90,$D0,$20,$60,$A0,$E0,$30,$70,$B0,$F0
-  1020 379C 40 80 C0 00 50 90 + 	dta $40,$80,$C0,$00,$50,$90,$D0,$10,$60,$A0,$E0,$20,$70,$B0,$F0,$30
-  1021 37AC 80 C0 00 40 90		dta $80,$C0,$00,$40,$90
-  1022 37B1			Init_Delta_Y
-  1023 37B1 06 02 03 00 01 02 + 	dta $06,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$01,$01,$02,$03,$00
-  1024 37C1 01 02 03 00 01 02 + 	dta $01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00
-  1025 37D1 01 02 03 00 01		dta $01,$02,$03,$00,$01
-  1026 37D6			Init_Delta_Y_Frac
-  1027 37D6 00 60 A0 E0 30 70 + 	dta $00,$60,$A0,$E0,$30,$70,$B0,$F0,$40,$80,$C0,$00,$50,$90,$D0,$10
-  1028 37E6 60 A0 E0 20 70 B0 + 	dta $60,$A0,$E0,$20,$70,$B0,$F0,$30,$80,$C0,$00,$40,$90,$D0,$10,$50
-  1029 37F6 A0 E0 20 60 B0		dta $A0,$E0,$20,$60,$B0
+  1014 3740			Init_Delta_X
+  1015 3740 01 01 02 03 00 01 + 	dta $01,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03
+  1016 3750 00 01 02 03 00 01 + 	dta $00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03
+  1017 3760 00 01 02 03 00		dta $00,$01,$02,$03,$00
+  1018 3765			Init_Delta_X_Frac
+  1019 3765 00 40 80 C0 10 50 + 	dta $00,$40,$80,$C0,$10,$50,$90,$D0,$20,$60,$A0,$E0,$30,$70,$B0,$F0
+  1020 3775 40 80 C0 00 50 90 + 	dta $40,$80,$C0,$00,$50,$90,$D0,$10,$60,$A0,$E0,$20,$70,$B0,$F0,$30
+  1021 3785 80 C0 00 40 90		dta $80,$C0,$00,$40,$90
+  1022 378A			Init_Delta_Y
+  1023 378A 06 02 03 00 01 02 + 	dta $06,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$01,$01,$02,$03,$00
+  1024 379A 01 02 03 00 01 02 + 	dta $01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00
+  1025 37AA 01 02 03 00 01		dta $01,$02,$03,$00,$01
+  1026 37AF			Init_Delta_Y_Frac
+  1027 37AF 00 60 A0 E0 30 70 + 	dta $00,$60,$A0,$E0,$30,$70,$B0,$F0,$40,$80,$C0,$00,$50,$90,$D0,$10
+  1028 37BF 60 A0 E0 20 70 B0 + 	dta $60,$A0,$E0,$20,$70,$B0,$F0,$30,$80,$C0,$00,$40,$90,$D0,$10,$50
+  1029 37CF A0 E0 20 60 B0		dta $A0,$E0,$20,$60,$B0
   1030
   1031 				; Standard Atari ROM font for 3 and 7, laid out by hand, then auto-generated tables based on my grid
-  1032 37FB			Init_Pos_X_Lo
-  1033 37FB 12 24 36 48 5A 6C + 	dta $12,$24,$36,$48,$5A,$6C,$A2,$B4,$C6,$D8,$EA,$FC,$48,$5A,$A2,$EA	; Objs $00-$0F
-  1034 380B FC 36 48 D8 EA 48 + 	dta $FC,$36,$48,$D8,$EA,$48,$5A,$C6,$D8,$12,$24,$5A,$6C,$B4,$C6,$24	; Objs $10-$1F
-  1035 381B 36 48 5A B4 C6		dta $36,$48,$5A,$B4,$C6				; Objs $20-$24
-  1036 3820			Init_Pos_Y
-  1037 3820 0D 0D 0D 0D 0D 0D + 	dta $0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$1A,$1A,$1A,$1A	; Objs $00-$0F
-  1038 3830 1A 27 27 27 27 34 + 	dta $1A,$27,$27,$27,$27,$34,$34,$34,$34,$41,$41,$41,$41,$41,$41,$4E	; Objs $10-$1F
-  1039 3840 4E 4E 4E 4E 4E		dta $4E,$4E,$4E,$4E,$4E				; Objs $20-$24
+  1032 37D4			Init_Pos_X_Lo
+  1033 37D4 12 24 36 48 5A 6C + 	dta $12,$24,$36,$48,$5A,$6C,$A2,$B4,$C6,$D8,$EA,$FC,$48,$5A,$A2,$EA	; Objs $00-$0F
+  1034 37E4 FC 36 48 D8 EA 48 + 	dta $FC,$36,$48,$D8,$EA,$48,$5A,$C6,$D8,$12,$24,$5A,$6C,$B4,$C6,$24	; Objs $10-$1F
+  1035 37F4 36 48 5A B4 C6		dta $36,$48,$5A,$B4,$C6				; Objs $20-$24
+  1036 37F9			Init_Pos_Y
+  1037 37F9 0D 0D 0D 0D 0D 0D + 	dta $0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$1A,$1A,$1A,$1A	; Objs $00-$0F
+  1038 3809 1A 27 27 27 27 34 + 	dta $1A,$27,$27,$27,$27,$34,$34,$34,$34,$41,$41,$41,$41,$41,$41,$4E	; Objs $10-$1F
+  1039 3819 4E 4E 4E 4E 4E		dta $4E,$4E,$4E,$4E,$4E				; Objs $20-$24
   1040
   1041 					org $5900							; Ensure the Display_List is page aligned
   1042 5900			Display_List							; 16 * 15 = 240 lines
-  1043 5900-5A02> 00			.byte $00							; 1 blank
-  1044 5901 4F				.byte $4F							; Mode F, LMS @ SCREEN_RAM
-  1045 5902 00				.byte <SCREEN_RAM
-  1046 5903 80				.byte >SCREEN_RAM
+  1043 					;.byte $00							; 1 blank
+  1044 5900-5A11> 4F			.byte $4F							; Mode F, LMS @ SCREEN_RAM
+  1045 5901 00				.byte <SCREEN_RAM
+  1046 5902 80				.byte >SCREEN_RAM
   1047 				.rept $0F
   1049 						.BYTE $0F						
-  1051 					.BYTE $10							
   1052 					.BYTE $4F							
   1053 					.BYTE <SCREEN_RAM
   1054 					.BYTE >SCREEN_RAM
@@ -4374,6 +4373,7 @@ Source: bcbs.asm
 Source: REPT
   1055 				.endr
 Source: REPT
+  1049 5903 0F					.BYTE $0F						
   1049 5904 0F					.BYTE $0F						
   1049 5905 0F					.BYTE $0F						
   1049 5906 0F					.BYTE $0F						
@@ -4386,8 +4386,8 @@ Source: REPT
   1049 590D 0F					.BYTE $0F						
   1049 590E 0F					.BYTE $0F						
   1049 590F 0F					.BYTE $0F						
+  1049 5910 0F					.BYTE $0F						
 Source: demo.asm
-  1048 5910 10				.BYTE $10							
   1048 5911 4F				.BYTE $4F							
   1048 5912 00				.BYTE <SCREEN_RAM
   1048 5913 80				.BYTE >SCREEN_RAM
@@ -4405,14 +4405,14 @@ Source: REPT
   1049 591D 0F					.BYTE $0F						
   1049 591E 0F					.BYTE $0F						
   1049 591F 0F					.BYTE $0F						
+  1049 5920 0F					.BYTE $0F						
+  1049 5921 0F					.BYTE $0F						
 Source: demo.asm
-  1048 5920 10				.BYTE $10							
-  1048 5921 4F				.BYTE $4F							
-  1048 5922 00				.BYTE <SCREEN_RAM
-  1048 5923 80				.BYTE >SCREEN_RAM
+  1048 5922 4F				.BYTE $4F							
+  1048 5923 00				.BYTE <SCREEN_RAM
+  1048 5924 80				.BYTE >SCREEN_RAM
   1048 				.endr
 Source: REPT
-  1049 5924 0F					.BYTE $0F						
   1049 5925 0F					.BYTE $0F						
   1049 5926 0F					.BYTE $0F						
   1049 5927 0F					.BYTE $0F						
@@ -4424,15 +4424,15 @@ Source: REPT
   1049 592D 0F					.BYTE $0F						
   1049 592E 0F					.BYTE $0F						
   1049 592F 0F					.BYTE $0F						
+  1049 5930 0F					.BYTE $0F						
+  1049 5931 0F					.BYTE $0F						
+  1049 5932 0F					.BYTE $0F						
 Source: demo.asm
-  1048 5930 10				.BYTE $10							
-  1048 5931 4F				.BYTE $4F							
-  1048 5932 00				.BYTE <SCREEN_RAM
-  1048 5933 80				.BYTE >SCREEN_RAM
+  1048 5933 4F				.BYTE $4F							
+  1048 5934 00				.BYTE <SCREEN_RAM
+  1048 5935 80				.BYTE >SCREEN_RAM
   1048 				.endr
 Source: REPT
-  1049 5934 0F					.BYTE $0F						
-  1049 5935 0F					.BYTE $0F						
   1049 5936 0F					.BYTE $0F						
   1049 5937 0F					.BYTE $0F						
   1049 5938 0F					.BYTE $0F						
@@ -4443,16 +4443,16 @@ Source: REPT
   1049 593D 0F					.BYTE $0F						
   1049 593E 0F					.BYTE $0F						
   1049 593F 0F					.BYTE $0F						
+  1049 5940 0F					.BYTE $0F						
+  1049 5941 0F					.BYTE $0F						
+  1049 5942 0F					.BYTE $0F						
+  1049 5943 0F					.BYTE $0F						
 Source: demo.asm
-  1048 5940 10				.BYTE $10							
-  1048 5941 4F				.BYTE $4F							
-  1048 5942 00				.BYTE <SCREEN_RAM
-  1048 5943 80				.BYTE >SCREEN_RAM
+  1048 5944 4F				.BYTE $4F							
+  1048 5945 00				.BYTE <SCREEN_RAM
+  1048 5946 80				.BYTE >SCREEN_RAM
   1048 				.endr
 Source: REPT
-  1049 5944 0F					.BYTE $0F						
-  1049 5945 0F					.BYTE $0F						
-  1049 5946 0F					.BYTE $0F						
   1049 5947 0F					.BYTE $0F						
   1049 5948 0F					.BYTE $0F						
   1049 5949 0F					.BYTE $0F						
@@ -4462,17 +4462,17 @@ Source: REPT
   1049 594D 0F					.BYTE $0F						
   1049 594E 0F					.BYTE $0F						
   1049 594F 0F					.BYTE $0F						
+  1049 5950 0F					.BYTE $0F						
+  1049 5951 0F					.BYTE $0F						
+  1049 5952 0F					.BYTE $0F						
+  1049 5953 0F					.BYTE $0F						
+  1049 5954 0F					.BYTE $0F						
 Source: demo.asm
-  1048 5950 10				.BYTE $10							
-  1048 5951 4F				.BYTE $4F							
-  1048 5952 00				.BYTE <SCREEN_RAM
-  1048 5953 80				.BYTE >SCREEN_RAM
+  1048 5955 4F				.BYTE $4F							
+  1048 5956 00				.BYTE <SCREEN_RAM
+  1048 5957 80				.BYTE >SCREEN_RAM
   1048 				.endr
 Source: REPT
-  1049 5954 0F					.BYTE $0F						
-  1049 5955 0F					.BYTE $0F						
-  1049 5956 0F					.BYTE $0F						
-  1049 5957 0F					.BYTE $0F						
   1049 5958 0F					.BYTE $0F						
   1049 5959 0F					.BYTE $0F						
   1049 595A 0F					.BYTE $0F						
@@ -4481,18 +4481,18 @@ Source: REPT
   1049 595D 0F					.BYTE $0F						
   1049 595E 0F					.BYTE $0F						
   1049 595F 0F					.BYTE $0F						
-Source: demo.asm
-  1048 5960 10				.BYTE $10							
-  1048 5961 4F				.BYTE $4F							
-  1048 5962 00				.BYTE <SCREEN_RAM
-  1048 5963 80				.BYTE >SCREEN_RAM
-  1048 				.endr
-Source: REPT
+  1049 5960 0F					.BYTE $0F						
+  1049 5961 0F					.BYTE $0F						
+  1049 5962 0F					.BYTE $0F						
+  1049 5963 0F					.BYTE $0F						
   1049 5964 0F					.BYTE $0F						
   1049 5965 0F					.BYTE $0F						
-  1049 5966 0F					.BYTE $0F						
-  1049 5967 0F					.BYTE $0F						
-  1049 5968 0F					.BYTE $0F						
+Source: demo.asm
+  1048 5966 4F				.BYTE $4F							
+  1048 5967 00				.BYTE <SCREEN_RAM
+  1048 5968 80				.BYTE >SCREEN_RAM
+  1048 				.endr
+Source: REPT
   1049 5969 0F					.BYTE $0F						
   1049 596A 0F					.BYTE $0F						
   1049 596B 0F					.BYTE $0F						
@@ -4500,89 +4500,86 @@ Source: REPT
   1049 596D 0F					.BYTE $0F						
   1049 596E 0F					.BYTE $0F						
   1049 596F 0F					.BYTE $0F						
-Source: demo.asm
-  1048 5970 10				.BYTE $10							
-  1048 5971 4F				.BYTE $4F							
-  1048 5972 00				.BYTE <SCREEN_RAM
-  1048 5973 80				.BYTE >SCREEN_RAM
-  1048 				.endr
-Source: REPT
+  1049 5970 0F					.BYTE $0F						
+  1049 5971 0F					.BYTE $0F						
+  1049 5972 0F					.BYTE $0F						
+  1049 5973 0F					.BYTE $0F						
   1049 5974 0F					.BYTE $0F						
   1049 5975 0F					.BYTE $0F						
   1049 5976 0F					.BYTE $0F						
-  1049 5977 0F					.BYTE $0F						
-  1049 5978 0F					.BYTE $0F						
-  1049 5979 0F					.BYTE $0F						
+Source: demo.asm
+  1048 5977 4F				.BYTE $4F							
+  1048 5978 00				.BYTE <SCREEN_RAM
+  1048 5979 80				.BYTE >SCREEN_RAM
+  1048 				.endr
+Source: REPT
   1049 597A 0F					.BYTE $0F						
   1049 597B 0F					.BYTE $0F						
   1049 597C 0F					.BYTE $0F						
   1049 597D 0F					.BYTE $0F						
   1049 597E 0F					.BYTE $0F						
   1049 597F 0F					.BYTE $0F						
-Source: demo.asm
-  1048 5980 10				.BYTE $10							
-  1048 5981 4F				.BYTE $4F							
-  1048 5982 00				.BYTE <SCREEN_RAM
-  1048 5983 80				.BYTE >SCREEN_RAM
-  1048 				.endr
-Source: REPT
+  1049 5980 0F					.BYTE $0F						
+  1049 5981 0F					.BYTE $0F						
+  1049 5982 0F					.BYTE $0F						
+  1049 5983 0F					.BYTE $0F						
   1049 5984 0F					.BYTE $0F						
   1049 5985 0F					.BYTE $0F						
   1049 5986 0F					.BYTE $0F						
   1049 5987 0F					.BYTE $0F						
-  1049 5988 0F					.BYTE $0F						
-  1049 5989 0F					.BYTE $0F						
-  1049 598A 0F					.BYTE $0F						
+Source: demo.asm
+  1048 5988 4F				.BYTE $4F							
+  1048 5989 00				.BYTE <SCREEN_RAM
+  1048 598A 80				.BYTE >SCREEN_RAM
+  1048 				.endr
+Source: REPT
   1049 598B 0F					.BYTE $0F						
   1049 598C 0F					.BYTE $0F						
   1049 598D 0F					.BYTE $0F						
   1049 598E 0F					.BYTE $0F						
   1049 598F 0F					.BYTE $0F						
-Source: demo.asm
-  1048 5990 10				.BYTE $10							
-  1048 5991 4F				.BYTE $4F							
-  1048 5992 00				.BYTE <SCREEN_RAM
-  1048 5993 80				.BYTE >SCREEN_RAM
-  1048 				.endr
-Source: REPT
+  1049 5990 0F					.BYTE $0F						
+  1049 5991 0F					.BYTE $0F						
+  1049 5992 0F					.BYTE $0F						
+  1049 5993 0F					.BYTE $0F						
   1049 5994 0F					.BYTE $0F						
   1049 5995 0F					.BYTE $0F						
   1049 5996 0F					.BYTE $0F						
   1049 5997 0F					.BYTE $0F						
   1049 5998 0F					.BYTE $0F						
-  1049 5999 0F					.BYTE $0F						
-  1049 599A 0F					.BYTE $0F						
-  1049 599B 0F					.BYTE $0F						
+Source: demo.asm
+  1048 5999 4F				.BYTE $4F							
+  1048 599A 00				.BYTE <SCREEN_RAM
+  1048 599B 80				.BYTE >SCREEN_RAM
+  1048 				.endr
+Source: REPT
   1049 599C 0F					.BYTE $0F						
   1049 599D 0F					.BYTE $0F						
   1049 599E 0F					.BYTE $0F						
   1049 599F 0F					.BYTE $0F						
-Source: demo.asm
-  1048 59A0 10				.BYTE $10							
-  1048 59A1 4F				.BYTE $4F							
-  1048 59A2 00				.BYTE <SCREEN_RAM
-  1048 59A3 80				.BYTE >SCREEN_RAM
-  1048 				.endr
-Source: REPT
+  1049 59A0 0F					.BYTE $0F						
+  1049 59A1 0F					.BYTE $0F						
+  1049 59A2 0F					.BYTE $0F						
+  1049 59A3 0F					.BYTE $0F						
   1049 59A4 0F					.BYTE $0F						
   1049 59A5 0F					.BYTE $0F						
   1049 59A6 0F					.BYTE $0F						
   1049 59A7 0F					.BYTE $0F						
   1049 59A8 0F					.BYTE $0F						
   1049 59A9 0F					.BYTE $0F						
-  1049 59AA 0F					.BYTE $0F						
-  1049 59AB 0F					.BYTE $0F						
-  1049 59AC 0F					.BYTE $0F						
+Source: demo.asm
+  1048 59AA 4F				.BYTE $4F							
+  1048 59AB 00				.BYTE <SCREEN_RAM
+  1048 59AC 80				.BYTE >SCREEN_RAM
+  1048 				.endr
+Source: REPT
   1049 59AD 0F					.BYTE $0F						
   1049 59AE 0F					.BYTE $0F						
   1049 59AF 0F					.BYTE $0F						
-Source: demo.asm
-  1048 59B0 10				.BYTE $10							
-  1048 59B1 4F				.BYTE $4F							
-  1048 59B2 00				.BYTE <SCREEN_RAM
-  1048 59B3 80				.BYTE >SCREEN_RAM
-  1048 				.endr
-Source: REPT
+  1049 59B0 0F					.BYTE $0F						
+  1049 59B1 0F					.BYTE $0F						
+  1049 59B2 0F					.BYTE $0F						
+  1049 59B3 0F					.BYTE $0F						
   1049 59B4 0F					.BYTE $0F						
   1049 59B5 0F					.BYTE $0F						
   1049 59B6 0F					.BYTE $0F						
@@ -4590,18 +4587,18 @@ Source: REPT
   1049 59B8 0F					.BYTE $0F						
   1049 59B9 0F					.BYTE $0F						
   1049 59BA 0F					.BYTE $0F						
-  1049 59BB 0F					.BYTE $0F						
-  1049 59BC 0F					.BYTE $0F						
-  1049 59BD 0F					.BYTE $0F						
-  1049 59BE 0F					.BYTE $0F						
-  1049 59BF 0F					.BYTE $0F						
 Source: demo.asm
-  1048 59C0 10				.BYTE $10							
-  1048 59C1 4F				.BYTE $4F							
-  1048 59C2 00				.BYTE <SCREEN_RAM
-  1048 59C3 80				.BYTE >SCREEN_RAM
+  1048 59BB 4F				.BYTE $4F							
+  1048 59BC 00				.BYTE <SCREEN_RAM
+  1048 59BD 80				.BYTE >SCREEN_RAM
   1048 				.endr
 Source: REPT
+  1049 59BE 0F					.BYTE $0F						
+  1049 59BF 0F					.BYTE $0F						
+  1049 59C0 0F					.BYTE $0F						
+  1049 59C1 0F					.BYTE $0F						
+  1049 59C2 0F					.BYTE $0F						
+  1049 59C3 0F					.BYTE $0F						
   1049 59C4 0F					.BYTE $0F						
   1049 59C5 0F					.BYTE $0F						
   1049 59C6 0F					.BYTE $0F						
@@ -4610,17 +4607,17 @@ Source: REPT
   1049 59C9 0F					.BYTE $0F						
   1049 59CA 0F					.BYTE $0F						
   1049 59CB 0F					.BYTE $0F						
-  1049 59CC 0F					.BYTE $0F						
-  1049 59CD 0F					.BYTE $0F						
-  1049 59CE 0F					.BYTE $0F						
-  1049 59CF 0F					.BYTE $0F						
 Source: demo.asm
-  1048 59D0 10				.BYTE $10							
-  1048 59D1 4F				.BYTE $4F							
-  1048 59D2 00				.BYTE <SCREEN_RAM
-  1048 59D3 80				.BYTE >SCREEN_RAM
+  1048 59CC 4F				.BYTE $4F							
+  1048 59CD 00				.BYTE <SCREEN_RAM
+  1048 59CE 80				.BYTE >SCREEN_RAM
   1048 				.endr
 Source: REPT
+  1049 59CF 0F					.BYTE $0F						
+  1049 59D0 0F					.BYTE $0F						
+  1049 59D1 0F					.BYTE $0F						
+  1049 59D2 0F					.BYTE $0F						
+  1049 59D3 0F					.BYTE $0F						
   1049 59D4 0F					.BYTE $0F						
   1049 59D5 0F					.BYTE $0F						
   1049 59D6 0F					.BYTE $0F						
@@ -4630,16 +4627,16 @@ Source: REPT
   1049 59DA 0F					.BYTE $0F						
   1049 59DB 0F					.BYTE $0F						
   1049 59DC 0F					.BYTE $0F						
-  1049 59DD 0F					.BYTE $0F						
-  1049 59DE 0F					.BYTE $0F						
-  1049 59DF 0F					.BYTE $0F						
 Source: demo.asm
-  1048 59E0 10				.BYTE $10							
-  1048 59E1 4F				.BYTE $4F							
-  1048 59E2 00				.BYTE <SCREEN_RAM
-  1048 59E3 80				.BYTE >SCREEN_RAM
+  1048 59DD 4F				.BYTE $4F							
+  1048 59DE 00				.BYTE <SCREEN_RAM
+  1048 59DF 80				.BYTE >SCREEN_RAM
   1048 				.endr
 Source: REPT
+  1049 59E0 0F					.BYTE $0F						
+  1049 59E1 0F					.BYTE $0F						
+  1049 59E2 0F					.BYTE $0F						
+  1049 59E3 0F					.BYTE $0F						
   1049 59E4 0F					.BYTE $0F						
   1049 59E5 0F					.BYTE $0F						
   1049 59E6 0F					.BYTE $0F						
@@ -4650,35 +4647,53 @@ Source: REPT
   1049 59EB 0F					.BYTE $0F						
   1049 59EC 0F					.BYTE $0F						
   1049 59ED 0F					.BYTE $0F						
-  1049 59EE 0F					.BYTE $0F						
-  1049 59EF 0F					.BYTE $0F						
 Source: demo.asm
-  1048 59F0 10				.BYTE $10							
-  1048 59F1 4F				.BYTE $4F							
-  1048 59F2 00				.BYTE <SCREEN_RAM
-  1048 59F3 80				.BYTE >SCREEN_RAM
+  1048 59EE 4F				.BYTE $4F							
+  1048 59EF 00				.BYTE <SCREEN_RAM
+  1048 59F0 80				.BYTE >SCREEN_RAM
+  1048 				.endr
+Source: REPT
+  1049 59F1 0F					.BYTE $0F						
+  1049 59F2 0F					.BYTE $0F						
+  1049 59F3 0F					.BYTE $0F						
+  1049 59F4 0F					.BYTE $0F						
+  1049 59F5 0F					.BYTE $0F						
+  1049 59F6 0F					.BYTE $0F						
+  1049 59F7 0F					.BYTE $0F						
+  1049 59F8 0F					.BYTE $0F						
+  1049 59F9 0F					.BYTE $0F						
+  1049 59FA 0F					.BYTE $0F						
+  1049 59FB 0F					.BYTE $0F						
+  1049 59FC 0F					.BYTE $0F						
+  1049 59FD 0F					.BYTE $0F						
+  1049 59FE 0F					.BYTE $0F						
 Source: demo.asm
-  1056 					.rept 12
+  1048 59FF 4F				.BYTE $4F							
+  1048 5A00 00				.BYTE <SCREEN_RAM
+  1048 5A01 80				.BYTE >SCREEN_RAM
+Source: demo.asm
+  1056 					.rept 13
   1057 						.BYTE $0F						
   1058 					.endr
 Source: REPT
-  1057 59F4 0F					.BYTE $0F						
-  1057 59F5 0F					.BYTE $0F						
-  1057 59F6 0F					.BYTE $0F						
-  1057 59F7 0F					.BYTE $0F						
-  1057 59F8 0F					.BYTE $0F						
-  1057 59F9 0F					.BYTE $0F						
-  1057 59FA 0F					.BYTE $0F						
-  1057 59FB 0F					.BYTE $0F						
-  1057 59FC 0F					.BYTE $0F						
-  1057 59FD 0F					.BYTE $0F						
-  1057 59FE 0F					.BYTE $0F						
-  1057 59FF 0F					.BYTE $0F						
+  1057 5A02 0F					.BYTE $0F						
+  1057 5A03 0F					.BYTE $0F						
+  1057 5A04 0F					.BYTE $0F						
+  1057 5A05 0F					.BYTE $0F						
+  1057 5A06 0F					.BYTE $0F						
+  1057 5A07 0F					.BYTE $0F						
+  1057 5A08 0F					.BYTE $0F						
+  1057 5A09 0F					.BYTE $0F						
+  1057 5A0A 0F					.BYTE $0F						
+  1057 5A0B 0F					.BYTE $0F						
+  1057 5A0C 0F					.BYTE $0F						
+  1057 5A0D 0F					.BYTE $0F						
+  1057 5A0E 0F					.BYTE $0F						
 Source: demo.asm
-  1059 5A00 41				.byte $41							; Jump & Wait VBL
-  1060 5A01 00				.byte <Display_List
-  1061 5A02 59				.byte >Display_List
-  1062 = 0103			Display_List_Length	equ *-Display_List
+  1059 5A0F 41				.byte $41							; Jump & Wait VBL
+  1060 5A10 00				.byte <Display_List
+  1061 5A11 59				.byte >Display_List
+  1062 = 0112			Display_List_Length	equ *-Display_List
   1063
   1064 				; ---
   1065 02E0-02E1> 00 33			run main

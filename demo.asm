@@ -129,7 +129,7 @@ Bobs	equ	$5500
 .def	Blt_Ctrl						= $14
 
 ; Title Screen
-.def	V_0								= $00	;   (Screen code used for Version in loading screen)
+.def	V_0								= $01	;   (Screen code used for Version in loading screen)
 .def	V_1								= $24	; D (Screen code used for Version in loading screen)
 .def	V_2								= $22	; B (Screen code used for Version in loading screen)
 .def	V_3								= $27	; G (Screen code used for Version in loading screen)
@@ -913,53 +913,53 @@ Setup_DisplayList
 ; This will generate the 9600 byte colour map used by the VBXE
 ;-----------------------------------------------------------------------------
 Generate_Colour_Map
-	lda #$00
-	sta Ptr_Lo
-	lda #$06
-	sta Ptr_Hi							; Initialize destination pointer to $0600
-
-	lda #$01
-	sta Reg1							; Running colour accumulator
-
-	ldx #$00							; Object counter (0-15)
-obj_loop
-	ldy #$00							; Row counter (0-14)
-row_loop
-	lda #$00							; Default: blank row
-	cpy #$00
-	beq store_colour
-	cpy #$0E
-	beq store_colour
-	lda Reg1							; Non-blank row: use accumulator
-	inc Reg1
-store_colour
-	sta (Ptr_Lo),Y
-
-	iny
-	cpy #$0F							; 15 rows per object
-	bne row_loop
-
-; Advance pointer by 15 to next object's base
-	lda Ptr_Lo
-	clc
-	adc #$0F
-	sta Ptr_Lo
-	bcc no_carry
-	inc Ptr_Hi
-no_carry
-	inx
-	cpx #$10							; 16 objects
-	bne obj_loop
-
-; ; For debugging, skip all the 0 entries
-; 	ldx #$EF
-; Generate_Colour_Map_L1
-; 	txa									; Set $600-$6EF equal to
-; 	sta $0600,x							; $00-$EF
-; 	dex
-; 	bne Generate_Colour_Map_L1
 ; 	lda #$00
-; 	sta $0600							; Pickup the final save
+; 	sta Ptr_Lo
+; 	lda #$06
+; 	sta Ptr_Hi							; Initialize destination pointer to $0600
+
+; 	lda #$01
+; 	sta Reg1							; Running colour accumulator
+
+; 	ldx #$00							; Object counter (0-15)
+; obj_loop
+; 	ldy #$00							; Row counter (0-14)
+; row_loop
+; 	lda #$00							; Default: blank row
+; 	cpy #$00
+; 	beq store_colour
+; 	cpy #$0E
+; 	beq store_colour
+; 	lda Reg1							; Non-blank row: use accumulator
+; 	inc Reg1
+; store_colour
+; 	sta (Ptr_Lo),Y
+
+; 	iny
+; 	cpy #$0F							; 15 rows per object
+; 	bne row_loop
+
+; ; Advance pointer by 15 to next object's base
+; 	lda Ptr_Lo
+; 	clc
+; 	adc #$0F
+; 	sta Ptr_Lo
+; 	bcc no_carry
+; 	inc Ptr_Hi
+; no_carry
+; 	inx
+; 	cpx #$10							; 16 objects
+; 	bne obj_loop
+
+; For debugging, skip all the 0 entries
+	ldx #$EF
+Generate_Colour_Map_L1
+	txa									; Set $600-$6EF equal to
+	sta $0600,x							; $00-$EF
+	dex
+	bne Generate_Colour_Map_L1
+	lda #$00
+	sta $0600							; Pickup the final save
 
 	jsr Setup_Cmap1						; Setup the Palette & Priority bits
 	jsr Setup_Colours
@@ -1040,20 +1040,20 @@ Init_Pos_Y
 
 	org $5900							; Ensure the Display_List is page aligned
 Display_List							; 16 * 15 = 240 lines
-	.byte $00							; 1 blank
+	;.byte $00							; 1 blank
 	.byte $4F							; Mode F, LMS @ SCREEN_RAM
 	.byte <SCREEN_RAM
 	.byte >SCREEN_RAM
 .rept $0F
-	.rept 12
+	.rept 14
 		.byte $0F						; Mode F
 	.endr
-	.byte $10							; 2 blank
+	;.byte $10							; 2 blank
 	.byte $4F							; Mode F, LMS @ SCREEN_RAM
 	.byte <SCREEN_RAM
 	.byte >SCREEN_RAM
 .endr
-	.rept 12
+	.rept 13
 		.byte $0F						; Mode F
 	.endr
 	.byte $41							; Jump & Wait VBL
