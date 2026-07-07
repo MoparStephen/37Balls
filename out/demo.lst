@@ -3132,7 +3132,7 @@ Source: xdl.asm
      6 2403 00 00 02 00 02		dta $00,$00,$02,$00,$02				; XDLC_OVADR (5 bytes)
      7 2408 00 00 06 28 00		dta $00,$00,$06,$28,$00				; XDLC_MAPADR (5 bytes)
      8 240D 00 00 1F 00			dta $00,$00,$1F,$00					; XDLC_MAPPAR (4 bytes)
-     9 2411 01 FF			dta %00000001,$FF					; XDLC_OVATT (2 bytes)
+     9 2411 11 FF			dta %00010001,$FF					; XDLC_OVATT (2 bytes)
     10 				;		 76543210  76543210
     11 2413 00 80			dta %00000000,%10000000				; XDLC (2 Bytes) - End of XDL, wait for VSYNC
     12
@@ -3143,7 +3143,7 @@ Source: xdl.asm
     17 2416 08				dta %00001000						; XDLC Byte 2 $08 (XDLC_ATT)
     18 2417 EE				dta $EE								; XDLC_RPTL (1 byte)
     19 2418 00 00 02 00 02		dta $00,$00,$02,$00,$02				; XDLC_OVADR (5 bytes) - same Screen 1/2 addresses as XDL_Attribute
-    20 241D 01 FF			dta %00000001,$FF					; XDLC_OVATT (2 bytes)
+    20 241D 11 FF			dta %00010001,$FF					; XDLC_OVATT (2 bytes)
     21 				;		 76543210  76543210
     22 241F 00 80			dta %00000000,%10000000				; XDLC (2 Bytes) - End of XDL, wait for VSYNC
    461 = 0021			XDL_Length	equ *-XDL_START
@@ -3451,7 +3451,7 @@ Source: bcbs.asm
    202 				;-----------------------------------------------------------------------------
    203 3300			main
    204 				; Setup RMT
-   205 3300-3826> A2 18			ldx #<music.module
+   205 3300-382B> A2 18			ldx #<music.module
    206 3302 A0 47			ldy #>music.module
    207 3304 A9 00			lda #$00
    208 3306 20 00 44			jsr music.init_song
@@ -3474,1161 +3474,1163 @@ Source: bcbs.asm
    225 3323 A9 00			lda #$00
    226 3325 8D 89 04			sta Colour_Map_Val					; Initialize to 0
    227 3328 8D C6 02			sta COLOR2							; Set Playfield Black
-   228 332B 20 ED 36			jsr Setup_DisplayList
-   229 332E 20 1E 36			jsr Wait_For_Sync
+   228 332B 20 F2 36			jsr Setup_DisplayList
+   229 332E 20 15 36			jsr Wait_For_Sync
    230
    231 3331 A9 03			lda #%00000011						; XDL,XCOLOR Enabled and transparent color index 0
    232 3333 8D 40 D6			sta VBXE_VIDEO_CONTROL
-   233 					
-   234 3336 20 05 37			jsr Generate_Colour_Map				; So we don't have a boring monochrome background
-   235
-   236 3339			Hang
-   237 3339 20 1E 36			jsr Wait_For_Sync
-   238 333C 4C 39 33			jmp Hang
+   233
+   234 				; Pre-fill both screen buffers with the background before animation starts
+   235 3336 20 7F 35			jsr Flip_Screen
+   236 3339 20 4A 36			jsr Clear_Screen					; Draw background
+   237 333C 20 7F 35			jsr Flip_Screen
+   238 333F 20 4A 36			jsr Clear_Screen					; Draw background
    239
-   240 				; Pre-fill both screen buffers with the background before animation starts
-   241 333F 20 88 35			jsr Flip_Screen
-   242 3342 20 53 36			jsr Clear_Screen					; Draw background
-   243 3345 20 88 35			jsr Flip_Screen
-   244 3348 20 53 36			jsr Clear_Screen					; Draw background
-   245
-   246 334B 20 05 37			jsr Generate_Colour_Map				; So we don't have a boring monochrome background
+   240 3342 20 0A 37			jsr Generate_Colour_Map				; So we don't have a boring monochrome background
+   241
+   242 3345 20 12 35			jsr Init_Objects					; Initialise all sprite structs
+   243
+   244 				; Point the buffer to the currently being displayed screen
+   245 3348 A9 80			lda #$80							; Bank $00 with global enable (XDL lives in bank $00)
+   246 334A 8D 5F D6			sta VBXE_MA_BSEL
    247
-   248 334E 20 1B 35			jsr Init_Objects					; Initialise all sprite structs
-   249
-   250 				; Point the buffer to the currently being displayed screen
-   251 3351 A9 80			lda #$80							; Bank $00 with global enable (XDL lives in bank $00)
-   252 3353 8D 5F D6			sta VBXE_MA_BSEL
-   253
-   254 3356 AD 05 24			lda VBXE_WINDOW + $405				; XDL Adr2 (byte 5 of XDL at VBXE_WINDOW+$400)
-   255 3359 49 06			eor #$06							; Flip between $02 ($020000) and $04 ($040000)
-   256 335B 8D 05 24			sta VBXE_WINDOW + $405				; XDL Adr2 (byte 5 of XDL at VBXE_WINDOW+$400)
-   257
-   258 				; Draw the initial bobs to the screen being displayed
-   259 335E 20 FD 33			jsr Set_Positions					; Update positions, bounce, write BCBs, blit all sprites
-   260
-   261 				; Set it back
-   262 3361 A9 80			lda #$80							; Bank $00 with global enable (XDL lives in bank $00)
-   263 3363 8D 5F D6			sta VBXE_MA_BSEL
-   264
-   265 3366 AD 05 24			lda VBXE_WINDOW + $405				; XDL Adr2 (byte 5 of XDL at VBXE_WINDOW+$400)
-   266 3369 49 06			eor #$06							; Flip between $02 ($020000) and $04 ($040000)
-   267 336B 8D 05 24			sta VBXE_WINDOW + $405				; XDL Adr2 (byte 5 of XDL at VBXE_WINDOW+$400)
-   268
-   269 336E A9 64			lda #$64							; Delay animation starting by $64 frames (2 PAL seconds)
-   270 3370 85 80			sta Reg1
+   248 334D AD 05 24			lda VBXE_WINDOW + $405				; XDL Adr2 (byte 5 of XDL at VBXE_WINDOW+$400)
+   249 3350 49 06			eor #$06							; Flip between $02 ($020000) and $04 ($040000)
+   250 3352 8D 05 24			sta VBXE_WINDOW + $405				; XDL Adr2 (byte 5 of XDL at VBXE_WINDOW+$400)
+   251
+   252 				; Draw the initial bobs to the screen being displayed
+   253 3355 20 F4 33			jsr Set_Positions					; Update positions, bounce, write BCBs, blit all sprites
+   254
+   255 				; Set it back
+   256 3358 A9 80			lda #$80							; Bank $00 with global enable (XDL lives in bank $00)
+   257 335A 8D 5F D6			sta VBXE_MA_BSEL
+   258
+   259 335D AD 05 24			lda VBXE_WINDOW + $405				; XDL Adr2 (byte 5 of XDL at VBXE_WINDOW+$400)
+   260 3360 49 06			eor #$06							; Flip between $02 ($020000) and $04 ($040000)
+   261 3362 8D 05 24			sta VBXE_WINDOW + $405				; XDL Adr2 (byte 5 of XDL at VBXE_WINDOW+$400)
+   262
+   263 3365 A9 64			lda #$64							; Delay animation starting by $64 frames (2 PAL seconds)
+   264 3367 85 80			sta Reg1
+   265
+   266 3369			Delay_Start
+   267 3369 20 03 44			jsr music.play						; Play a frame of music
+   268 336C 20 15 36			jsr Wait_For_Sync
+   269 336F C6 80			dec Reg1
+   270 3371 D0 F6			bne Delay_Start
    271
-   272 3372			Delay_Start
-   273 3372 20 03 44			jsr music.play						; Play a frame of music
-   274 3375 20 1E 36			jsr Wait_For_Sync
-   275 3378 C6 80			dec Reg1
-   276 337A D0 F6			bne Delay_Start
+   272 3373 AD 87 04			lda Video_Flag
+   273 3376 F0 04			beq Set_Do_Motion					; If PAL skip next 2 lines
+   274
+   275 3378 A9 18			lda #MAX_SPRITES_NTSC				; Else limit # of sprites being shown
+   276 337A 85 8B			sta Num_Sprites
    277
-   278 337C AD 87 04			lda Video_Flag
-   279 337F F0 04			beq Set_Do_Motion					; If PAL skip next 2 lines
-   280
-   281 3381 A9 18			lda #MAX_SPRITES_NTSC				; Else limit # of sprites being shown
-   282 3383 85 8B			sta Num_Sprites
-   283
-   284 3385			Set_Do_Motion
-   285 3385 A9 01			lda #$01
-   286 3387 85 8A			sta Do_Motion						; Allow positions to update when blitting
-   287
-   288 3389			Main_Loop
-   289 3389 A9 00			lda #$00
-   290 338B 85 4D			sta ATRACT							; Disable Screensaver
+   278 337C			Set_Do_Motion
+   279 337C A9 01			lda #$01
+   280 337E 85 8A			sta Do_Motion						; Allow positions to update when blitting
+   281
+   282 3380			Main_Loop
+   283 3380 A9 00			lda #$00
+   284 3382 85 4D			sta ATRACT							; Disable Screensaver
+   285
+   286 				; Do all the work
+   287 3384 20 03 44			jsr music.play						; Play a frame of music
+   288 3387 20 F4 33			jsr Set_Positions					; Update positions, bounce, write BCBs, blit all sprites
+   289 338A 20 7F 35			jsr Flip_Screen						; Swap buffers
+   290 338D 20 4A 36			jsr Clear_Screen					; Redraw background
    291
-   292 				; Do all the work
-   293 338D 20 03 44			jsr music.play						; Play a frame of music
-   294 3390 20 FD 33			jsr Set_Positions					; Update positions, bounce, write BCBs, blit all sprites
-   295 3393 20 88 35			jsr Flip_Screen						; Swap buffers
-   296 3396 20 53 36			jsr Clear_Screen					; Redraw background
-   297
-   298 				; Work done -wait for vertical synch before looping again
-   299 3399			W_Synch_0
-   300 3399 20 1E 36			jsr Wait_For_Sync					; Wait for VSYNC, Q quits
-   301 339C A9 FF			lda #$FF
-   302 339E 8D FC 02			sta CH
-   303 33A1 A9 00			lda #DBG_SINGLE_STEP
-   304 33A3 F0 0F			beq Dont_Wait_Space_0
-   305 33A5			Wait_Space_0
-   306 33A5 A9 00			lda #$00
-   307 33A7 85 4D			sta ATRACT							; Disable screensaver
-   308 33A9 AD FC 02			lda CH
-   309 33AC C9 2F			cmp #$2F							; Press Q to quit
-   310 33AE F0 07			beq Exit
-   311 33B0 C9 21			cmp #$21							; Press Space to start
-   312 33B2 D0 F1			bne Wait_Space_0
-   313 33B4			Dont_Wait_Space_0
-   314 33B4 4C 89 33			jmp Main_Loop						; Animate forever
-   315
-   316 				; This is where we exit
-   317 33B7			Exit
-   318 33B7 A9 FF			lda #$FF
-   319 33B9 8D FC 02			sta CH								; Clear last key pressed
-   320
-   321 33BC A9 00			lda #$00
-   322 33BE 8D 40 D6			sta VBXE_VIDEO_CONTROL				; Disable XDL
-   323 33C1 A9 00			lda #$00
-   324 33C3 8D 5F D6			sta VBXE_MA_BSEL					; Restore main memory (and disable VBXE memory window at VBXE_WINDOW)
-   325
-   326 33C6 6C 0A 00			jmp (DOSVEC)						; Good bye ;)
-   327
+   292 				; Work done -wait for vertical synch before looping again
+   293 3390			W_Synch_0
+   294 3390 20 15 36			jsr Wait_For_Sync					; Wait for VSYNC, Q quits
+   295 3393 A9 FF			lda #$FF
+   296 3395 8D FC 02			sta CH
+   297 3398 A9 00			lda #DBG_SINGLE_STEP
+   298 339A F0 0F			beq Dont_Wait_Space_0
+   299 339C			Wait_Space_0
+   300 339C A9 00			lda #$00
+   301 339E 85 4D			sta ATRACT							; Disable screensaver
+   302 33A0 AD FC 02			lda CH
+   303 33A3 C9 2F			cmp #$2F							; Press Q to quit
+   304 33A5 F0 07			beq Exit
+   305 33A7 C9 21			cmp #$21							; Press Space to start
+   306 33A9 D0 F1			bne Wait_Space_0
+   307 33AB			Dont_Wait_Space_0
+   308 33AB 4C 80 33			jmp Main_Loop						; Animate forever
+   309
+   310 				; This is where we exit
+   311 33AE			Exit
+   312 33AE A9 FF			lda #$FF
+   313 33B0 8D FC 02			sta CH								; Clear last key pressed
+   314
+   315 33B3 A9 00			lda #$00
+   316 33B5 8D 40 D6			sta VBXE_VIDEO_CONTROL				; Disable XDL
+   317 33B8 A9 00			lda #$00
+   318 33BA 8D 5F D6			sta VBXE_MA_BSEL					; Restore main memory (and disable VBXE memory window at VBXE_WINDOW)
+   319
+   320 33BD 6C 0A 00			jmp (DOSVEC)						; Good bye ;)
+   321
+   322 				;-----------------------------------------------------------------------------
+   323 				; Subroutines BEGIN
+   324 				;-----------------------------------------------------------------------------
+   325 				;-----------------------------------------------------------------------------
+   326 				; Reverse_X - 2's complement negate of Delta_X_Sign:Delta_X:Delta_X_Frac
+   327 				; Ptr_Lo/Ptr_Hi must point to the current Sprite struct
    328 				;-----------------------------------------------------------------------------
-   329 				; Subroutines BEGIN
-   330 				;-----------------------------------------------------------------------------
-   331 				;-----------------------------------------------------------------------------
-   332 				; Reverse_X - 2's complement negate of Delta_X_Sign:Delta_X:Delta_X_Frac
-   333 				; Ptr_Lo/Ptr_Hi must point to the current Sprite struct
-   334 				;-----------------------------------------------------------------------------
-   335 33C9			Reverse_X
-   336 33C9 38				sec
-   337 33CA A0 06			ldy #Spr_Delta_X_Frac
-   338 33CC A9 00			lda #$00
-   339 33CE F1 88			sbc (Ptr_Lo),y
-   340 33D0 91 88			sta (Ptr_Lo),y
-   341 33D2 A0 07			ldy #Spr_Delta_X
-   342 33D4 A9 00			lda #$00
-   343 33D6 F1 88			sbc (Ptr_Lo),y
-   344 33D8 91 88			sta (Ptr_Lo),y
-   345 33DA A0 05			ldy #Spr_Delta_X_Sign
-   346 33DC B1 88			lda (Ptr_Lo),y
-   347 33DE 49 FF			eor #$FF
-   348 33E0 91 88			sta (Ptr_Lo),y
-   349 33E2 60				rts
-   350
-   351 				;-----------------------------------------------------------------------------
-   352 				; Reverse_Y - 2's complement negate of Delta_Y_Sign:Delta_Y:Delta_Y_Frac
-   353 				;-----------------------------------------------------------------------------
-   354 33E3			Reverse_Y
-   355 33E3 38				sec
-   356 33E4 A0 09			ldy #Spr_Delta_Y_Frac
-   357 33E6 A9 00			lda #$00
-   358 33E8 F1 88			sbc (Ptr_Lo),y
-   359 33EA 91 88			sta (Ptr_Lo),y
-   360 33EC A0 0A			ldy #Spr_Delta_Y
-   361 33EE A9 00			lda #$00
-   362 33F0 F1 88			sbc (Ptr_Lo),y
-   363 33F2 91 88			sta (Ptr_Lo),y
-   364 33F4 A0 08			ldy #Spr_Delta_Y_Sign
-   365 33F6 B1 88			lda (Ptr_Lo),y
-   366 33F8 49 FF			eor #$FF
-   367 33FA 91 88			sta (Ptr_Lo),y
-   368 33FC 60				rts
-   369
-   370 				;-----------------------------------------------------------------------------
-   371 				; Set_Positions
-   372 				; For each sprite: update position with sub-pixel accuracy, bounce off walls,
-   373 				; compute VBXE address via Calculate_200, write to BLT_BALL BCB, fire blitter.
-   374 				; X = object counter,  Ptr_Lo/Ptr_Hi = pointer to current Sprite struct
-   375 				;-----------------------------------------------------------------------------
-   376 33FD			Set_Positions
-   377 33FD A9 80			lda #$80
-   378 33FF 8D 5F D6			sta VBXE_MA_BSEL					; Enable VBXE window for BCB writes
+   329 33C0			Reverse_X
+   330 33C0 38				sec
+   331 33C1 A0 06			ldy #Spr_Delta_X_Frac
+   332 33C3 A9 00			lda #$00
+   333 33C5 F1 88			sbc (Ptr_Lo),y
+   334 33C7 91 88			sta (Ptr_Lo),y
+   335 33C9 A0 07			ldy #Spr_Delta_X
+   336 33CB A9 00			lda #$00
+   337 33CD F1 88			sbc (Ptr_Lo),y
+   338 33CF 91 88			sta (Ptr_Lo),y
+   339 33D1 A0 05			ldy #Spr_Delta_X_Sign
+   340 33D3 B1 88			lda (Ptr_Lo),y
+   341 33D5 49 FF			eor #$FF
+   342 33D7 91 88			sta (Ptr_Lo),y
+   343 33D9 60				rts
+   344
+   345 				;-----------------------------------------------------------------------------
+   346 				; Reverse_Y - 2's complement negate of Delta_Y_Sign:Delta_Y:Delta_Y_Frac
+   347 				;-----------------------------------------------------------------------------
+   348 33DA			Reverse_Y
+   349 33DA 38				sec
+   350 33DB A0 09			ldy #Spr_Delta_Y_Frac
+   351 33DD A9 00			lda #$00
+   352 33DF F1 88			sbc (Ptr_Lo),y
+   353 33E1 91 88			sta (Ptr_Lo),y
+   354 33E3 A0 0A			ldy #Spr_Delta_Y
+   355 33E5 A9 00			lda #$00
+   356 33E7 F1 88			sbc (Ptr_Lo),y
+   357 33E9 91 88			sta (Ptr_Lo),y
+   358 33EB A0 08			ldy #Spr_Delta_Y_Sign
+   359 33ED B1 88			lda (Ptr_Lo),y
+   360 33EF 49 FF			eor #$FF
+   361 33F1 91 88			sta (Ptr_Lo),y
+   362 33F3 60				rts
+   363
+   364 				;-----------------------------------------------------------------------------
+   365 				; Set_Positions
+   366 				; For each sprite: update position with sub-pixel accuracy, bounce off walls,
+   367 				; compute VBXE address via Calculate_200, write to BLT_BALL BCB, fire blitter.
+   368 				; X = object counter,  Ptr_Lo/Ptr_Hi = pointer to current Sprite struct
+   369 				;-----------------------------------------------------------------------------
+   370 33F4			Set_Positions
+   371 33F4 A9 80			lda #$80
+   372 33F6 8D 5F D6			sta VBXE_MA_BSEL					; Enable VBXE window for BCB writes
+   373
+   374 33F9 A9 00			lda #<Bobs
+   375 33FB 85 88			sta Ptr_Lo
+   376 33FD A9 55			lda #>Bobs
+   377 33FF 85 89			sta Ptr_Hi
+   378 3401 A2 00			ldx #$00
    379
-   380 3402 A9 00			lda #<Bobs
-   381 3404 85 88			sta Ptr_Lo
-   382 3406 A9 55			lda #>Bobs
-   383 3408 85 89			sta Ptr_Hi
-   384 340A A2 00			ldx #$00
-   385
-   386 340C			Spr_Loop
-   387 340C A5 8A			lda Do_Motion
-   388 340E D0 03			bne Set_X
-   389 3410 4C DB 34			jmp Skip_Motion						; Long branch fix
-   390
-   391 				;--- X motion ----------------------------------------------------------------
-   392 3413			Set_X
-   393 3413 18				clc
-   394 3414 A0 00			ldy #Spr_X_Pos_Frac
-   395 3416 B1 88			lda (Ptr_Lo),y
-   396 3418 A0 06			ldy #Spr_Delta_X_Frac
-   397 341A 71 88			adc (Ptr_Lo),y
-   398 341C A0 00			ldy #Spr_X_Pos_Frac
-   399 341E 91 88			sta (Ptr_Lo),y
-   400
-   401 3420 A0 01			ldy #Spr_X_Pos_Lo
-   402 3422 B1 88			lda (Ptr_Lo),y
-   403 3424 A0 07			ldy #Spr_Delta_X
-   404 3426 71 88			adc (Ptr_Lo),y
-   405 3428 A0 01			ldy #Spr_X_Pos_Lo
-   406 342A 91 88			sta (Ptr_Lo),y
-   407
-   408 342C A0 02			ldy #Spr_X_Pos_Hi
-   409 342E B1 88			lda (Ptr_Lo),y
-   410 3430 A0 05			ldy #Spr_Delta_X_Sign
-   411 3432 71 88			adc (Ptr_Lo),y						; $00 = right, $FF = left
-   412 3434 A0 02			ldy #Spr_X_Pos_Hi
-   413 3436 91 88			sta (Ptr_Lo),y
-   414 3438 B1 88			lda (Ptr_Lo),y						; Reload to restore N flag (sta does not set N)
-   415
-   416 				; Left wall: X_Pos_Hi >= $80 means position underflowed past 0
-   417 343A 10 1A			bpl X_Check_Right
-   418 343C A9 00			lda #$00
-   419 343E A0 02			ldy #Spr_X_Pos_Hi
-   420 3440 91 88			sta (Ptr_Lo),y
-   421 3442 A0 01			ldy #Spr_X_Pos_Lo
-   422 3444 91 88			sta (Ptr_Lo),y
-   423 3446 A0 00			ldy #Spr_X_Pos_Frac
-   424 3448 91 88			sta (Ptr_Lo),y
-   425 344A A0 05			ldy #Spr_Delta_X_Sign
-   426 344C B1 88			lda (Ptr_Lo),y
-   427 344E 10 33			bpl X_Done							; Already heading right
-   428 3450 20 C9 33			jsr Reverse_X
-   429 3453 4C 83 34			jmp X_Done
-   430
-   431 				; Right wall: clamp if X_Pos > $0120 (320 - 32 = 288)
-   432 3456			X_Check_Right
-   433 3456 A0 02			ldy #Spr_X_Pos_Hi
-   434 3458 B1 88			lda (Ptr_Lo),y
-   435 345A C9 01			cmp #$01
-   436 345C 90 25			bcc X_Done							; Hi < $01, in range
-   437 345E D0 08			bne X_Hit_Right						; Hi > $01, past right edge
-   438 3460 A0 01			ldy #Spr_X_Pos_Lo
-   439 3462 B1 88			lda (Ptr_Lo),y
-   440 3464 C9 21			cmp #$21							; Lo > $20?
-   441 3466 90 1B			bcc X_Done
-   442 3468			X_Hit_Right
-   443 3468 A9 01			lda #$01
-   444 346A A0 02			ldy #Spr_X_Pos_Hi
-   445 346C 91 88			sta (Ptr_Lo),y
-   446 346E A9 20			lda #$20
-   447 3470 A0 01			ldy #Spr_X_Pos_Lo
-   448 3472 91 88			sta (Ptr_Lo),y
-   449 3474 A9 00			lda #$00
-   450 3476 A0 00			ldy #Spr_X_Pos_Frac
-   451 3478 91 88			sta (Ptr_Lo),y
-   452 347A A0 05			ldy #Spr_Delta_X_Sign
-   453 347C B1 88			lda (Ptr_Lo),y
-   454 347E 30 03			bmi X_Done							; Already heading left
-   455 3480 20 C9 33			jsr Reverse_X
-   456 3483			X_Done
-   457
-   458 				;--- Y motion ----------------------------------------------------------------
-   459 3483 18				clc
-   460 3484 A0 03			ldy #Spr_Y_Pos_Frac
-   461 3486 B1 88			lda (Ptr_Lo),y
-   462 3488 A0 09			ldy #Spr_Delta_Y_Frac
-   463 348A 71 88			adc (Ptr_Lo),y
-   464 348C A0 03			ldy #Spr_Y_Pos_Frac
-   465 348E 91 88			sta (Ptr_Lo),y
-   466
-   467 3490 A0 04			ldy #Spr_Y_Pos
-   468 3492 B1 88			lda (Ptr_Lo),y
-   469 3494 A0 0A			ldy #Spr_Delta_Y
-   470 3496 71 88			adc (Ptr_Lo),y
-   471 3498 A0 04			ldy #Spr_Y_Pos
-   472 349A 91 88			sta (Ptr_Lo),y
-   473
-   474 349C A0 08			ldy #Spr_Delta_Y_Sign
-   475 349E B1 88			lda (Ptr_Lo),y
-   476 34A0 30 1E			bmi Y_Check_Top
-   477
-   478 				; Moving down: clamp if Y_Pos > $D0 (240 - 32 = 208)
-   479 34A2			Y_Check_Bottom
-   480 34A2 A0 04			ldy #Spr_Y_Pos
-   481 34A4 B1 88			lda (Ptr_Lo),y
-   482 34A6 C9 D1			cmp #$D1
-   483 34A8 90 31			bcc Y_Done
-   484 34AA A9 D0			lda #$D0
-   485 34AC 91 88			sta (Ptr_Lo),y
-   486 34AE A9 00			lda #$00
-   487 34B0 A0 03			ldy #Spr_Y_Pos_Frac
-   488 34B2 91 88			sta (Ptr_Lo),y
-   489 34B4 A0 08			ldy #Spr_Delta_Y_Sign
-   490 34B6 B1 88			lda (Ptr_Lo),y
-   491 34B8 30 21			bmi Y_Done							; Already heading up
-   492 34BA 20 E3 33			jsr Reverse_Y
-   493 34BD 4C DB 34			jmp Y_Done
-   494
-   495 				; Moving up: underflow wraps Y_Pos above $D0
-   496 34C0			Y_Check_Top
-   497 34C0 A0 04			ldy #Spr_Y_Pos
-   498 34C2 B1 88			lda (Ptr_Lo),y
-   499 34C4 C9 D1			cmp #$D1
-   500 34C6 90 13			bcc Y_Done
-   501 34C8 A9 00			lda #$00
-   502 34CA A0 04			ldy #Spr_Y_Pos
-   503 34CC 91 88			sta (Ptr_Lo),y
-   504 34CE A0 03			ldy #Spr_Y_Pos_Frac
-   505 34D0 91 88			sta (Ptr_Lo),y
-   506 34D2 A0 08			ldy #Spr_Delta_Y_Sign
-   507 34D4 B1 88			lda (Ptr_Lo),y
-   508 34D6 10 03			bpl Y_Done							; Already heading down
-   509 34D8 20 E3 33			jsr Reverse_Y
-   510 34DB			Y_Done
-   511
-   512 				;--- Compute VBXE address and blit -------------------------------------------
-   513 34DB			Skip_Motion								; Jump here to bypass ball motion
-   514 34DB A0 01			ldy #Spr_X_Pos_Lo
-   515 34DD B1 88			lda (Ptr_Lo),y
-   516 34DF 85 80			sta Reg1							; X_Pos_Lo → Calculate_200 input
-   517 34E1 A0 02			ldy #Spr_X_Pos_Hi
-   518 34E3 B1 88			lda (Ptr_Lo),y
-   519 34E5 85 81			sta Reg2							; X_Pos_Hi → Calculate_200 input
-   520 34E7 A0 04			ldy #Spr_Y_Pos
-   521 34E9 B1 88			lda (Ptr_Lo),y
-   522 34EB 85 82			sta Reg3							; Y_Pos    → Calculate_200 input
-   523
-   524 34ED 20 AD 36			jsr Calculate_200					; → Reg4=Adr0, Reg5=Adr1, Reg6=Adr2
-   525
-   526 34F0 A5 83			lda Reg4
-   527 34F2 8D 06 25			sta VBXE_WINDOW+$500+BLT_BALL-BLT_BALL+Dest_Adr0
-   528 34F5 A5 84			lda Reg5
-   529 34F7 8D 07 25			sta VBXE_WINDOW+$500+BLT_BALL-BLT_BALL+Dest_Adr1
-   530 34FA A5 85			lda Reg6
-   531 34FC 8D 08 25			sta VBXE_WINDOW+$500+BLT_BALL-BLT_BALL+Dest_Adr2
-   532
-   533 34FF 20 04 36			jsr Draw_Sprite						; Wait for blitter idle then fire BLT_BALL
-   534
-   535 				;--- Advance Ptr to next sprite ----------------------------------------------
-   536 3502 18				clc
-   537 3503 A5 88			lda Ptr_Lo
-   538 3505 69 0B			adc #Sprite_Size
-   539 3507 85 88			sta Ptr_Lo
-   540 3509 90 02			bcc No_Hi_Bump
-   541 350B E6 89			inc Ptr_Hi
-   542 350D			No_Hi_Bump
-   543 350D E8				inx
-   544 350E E4 8B			cpx Num_Sprites
-   545 3510 F0 03			beq Spr_Loop_Done					; All sprites done
-   546 3512 4C 0C 34			jmp Spr_Loop						; Long branch workaround (loop body > 127 bytes)
-   547 3515			Spr_Loop_Done
-   548 3515 A9 00			lda #$00
-   549 3517 8D 5F D6			sta VBXE_MA_BSEL					; Disable VBXE window
-   550 351A 60				rts
-   551
-   552 				;-----------------------------------------------------------------------------
-   553 				; Init_Objects - called once at startup
-   554 				; Starting positions read from Init_Pos_X_Hi/Lo and Init_Pos_Y tables.
-   555 				; Velocities read from Init_Delta_X/Y tables (unchanged).
-   556 				;-----------------------------------------------------------------------------
-   557 351B			Init_Objects
-   558 351B A9 00			lda #<Bobs
-   559 351D 85 88			sta Ptr_Lo
-   560 351F A9 55			lda #>Bobs
-   561 3521 85 89			sta Ptr_Hi
-   562 3523 A2 00			ldx #$00
-   563
-   564 3525			Init_Spr_L
-   565 					; X position from tables - Frac always 0, Pos_Hi always 0
-   566 3525 8A				txa
-   567 3526 A8				tay
-   568 3527 B9 DD 37			lda Init_Pos_X_Lo,y
-   569 352A A0 01			ldy #Spr_X_Pos_Lo
-   570 352C 91 88			sta (Ptr_Lo),y
-   571 352E A9 00			lda #$00
-   572 3530 A0 00			ldy #Spr_X_Pos_Frac
-   573 3532 91 88			sta (Ptr_Lo),y
-   574 3534 A0 02			ldy #Spr_X_Pos_Hi
-   575 3536 91 88			sta (Ptr_Lo),y
-   576
-   577 					; Y position from table - Frac always 0
-   578 3538 8A				txa
-   579 3539 A8				tay
-   580 353A B9 02 38			lda Init_Pos_Y,y
-   581 353D A0 04			ldy #Spr_Y_Pos
-   582 353F 91 88			sta (Ptr_Lo),y
-   583 3541 A9 00			lda #$00
-   584 3543 A0 03			ldy #Spr_Y_Pos_Frac
-   585 3545 91 88			sta (Ptr_Lo),y
-   586
-   587 					; Velocity from tables, indexed directly by object number
+   380 3403			Spr_Loop
+   381 3403 A5 8A			lda Do_Motion
+   382 3405 D0 03			bne Set_X
+   383 3407 4C D2 34			jmp Skip_Motion						; Long branch fix
+   384
+   385 				;--- X motion ----------------------------------------------------------------
+   386 340A			Set_X
+   387 340A 18				clc
+   388 340B A0 00			ldy #Spr_X_Pos_Frac
+   389 340D B1 88			lda (Ptr_Lo),y
+   390 340F A0 06			ldy #Spr_Delta_X_Frac
+   391 3411 71 88			adc (Ptr_Lo),y
+   392 3413 A0 00			ldy #Spr_X_Pos_Frac
+   393 3415 91 88			sta (Ptr_Lo),y
+   394
+   395 3417 A0 01			ldy #Spr_X_Pos_Lo
+   396 3419 B1 88			lda (Ptr_Lo),y
+   397 341B A0 07			ldy #Spr_Delta_X
+   398 341D 71 88			adc (Ptr_Lo),y
+   399 341F A0 01			ldy #Spr_X_Pos_Lo
+   400 3421 91 88			sta (Ptr_Lo),y
+   401
+   402 3423 A0 02			ldy #Spr_X_Pos_Hi
+   403 3425 B1 88			lda (Ptr_Lo),y
+   404 3427 A0 05			ldy #Spr_Delta_X_Sign
+   405 3429 71 88			adc (Ptr_Lo),y						; $00 = right, $FF = left
+   406 342B A0 02			ldy #Spr_X_Pos_Hi
+   407 342D 91 88			sta (Ptr_Lo),y
+   408 342F B1 88			lda (Ptr_Lo),y						; Reload to restore N flag (sta does not set N)
+   409
+   410 				; Left wall: X_Pos_Hi >= $80 means position underflowed past 0
+   411 3431 10 1A			bpl X_Check_Right
+   412 3433 A9 00			lda #$00
+   413 3435 A0 02			ldy #Spr_X_Pos_Hi
+   414 3437 91 88			sta (Ptr_Lo),y
+   415 3439 A0 01			ldy #Spr_X_Pos_Lo
+   416 343B 91 88			sta (Ptr_Lo),y
+   417 343D A0 00			ldy #Spr_X_Pos_Frac
+   418 343F 91 88			sta (Ptr_Lo),y
+   419 3441 A0 05			ldy #Spr_Delta_X_Sign
+   420 3443 B1 88			lda (Ptr_Lo),y
+   421 3445 10 33			bpl X_Done							; Already heading right
+   422 3447 20 C0 33			jsr Reverse_X
+   423 344A 4C 7A 34			jmp X_Done
+   424
+   425 				; Right wall: clamp if X_Pos > $0120 (320 - 32 = 288)
+   426 344D			X_Check_Right
+   427 344D A0 02			ldy #Spr_X_Pos_Hi
+   428 344F B1 88			lda (Ptr_Lo),y
+   429 3451 C9 01			cmp #$01
+   430 3453 90 25			bcc X_Done							; Hi < $01, in range
+   431 3455 D0 08			bne X_Hit_Right						; Hi > $01, past right edge
+   432 3457 A0 01			ldy #Spr_X_Pos_Lo
+   433 3459 B1 88			lda (Ptr_Lo),y
+   434 345B C9 21			cmp #$21							; Lo > $20?
+   435 345D 90 1B			bcc X_Done
+   436 345F			X_Hit_Right
+   437 345F A9 01			lda #$01
+   438 3461 A0 02			ldy #Spr_X_Pos_Hi
+   439 3463 91 88			sta (Ptr_Lo),y
+   440 3465 A9 20			lda #$20
+   441 3467 A0 01			ldy #Spr_X_Pos_Lo
+   442 3469 91 88			sta (Ptr_Lo),y
+   443 346B A9 00			lda #$00
+   444 346D A0 00			ldy #Spr_X_Pos_Frac
+   445 346F 91 88			sta (Ptr_Lo),y
+   446 3471 A0 05			ldy #Spr_Delta_X_Sign
+   447 3473 B1 88			lda (Ptr_Lo),y
+   448 3475 30 03			bmi X_Done							; Already heading left
+   449 3477 20 C0 33			jsr Reverse_X
+   450 347A			X_Done
+   451
+   452 				;--- Y motion ----------------------------------------------------------------
+   453 347A 18				clc
+   454 347B A0 03			ldy #Spr_Y_Pos_Frac
+   455 347D B1 88			lda (Ptr_Lo),y
+   456 347F A0 09			ldy #Spr_Delta_Y_Frac
+   457 3481 71 88			adc (Ptr_Lo),y
+   458 3483 A0 03			ldy #Spr_Y_Pos_Frac
+   459 3485 91 88			sta (Ptr_Lo),y
+   460
+   461 3487 A0 04			ldy #Spr_Y_Pos
+   462 3489 B1 88			lda (Ptr_Lo),y
+   463 348B A0 0A			ldy #Spr_Delta_Y
+   464 348D 71 88			adc (Ptr_Lo),y
+   465 348F A0 04			ldy #Spr_Y_Pos
+   466 3491 91 88			sta (Ptr_Lo),y
+   467
+   468 3493 A0 08			ldy #Spr_Delta_Y_Sign
+   469 3495 B1 88			lda (Ptr_Lo),y
+   470 3497 30 1E			bmi Y_Check_Top
+   471
+   472 				; Moving down: clamp if Y_Pos > $D0 (240 - 32 = 208)
+   473 3499			Y_Check_Bottom
+   474 3499 A0 04			ldy #Spr_Y_Pos
+   475 349B B1 88			lda (Ptr_Lo),y
+   476 349D C9 D1			cmp #$D1
+   477 349F 90 31			bcc Y_Done
+   478 34A1 A9 D0			lda #$D0
+   479 34A3 91 88			sta (Ptr_Lo),y
+   480 34A5 A9 00			lda #$00
+   481 34A7 A0 03			ldy #Spr_Y_Pos_Frac
+   482 34A9 91 88			sta (Ptr_Lo),y
+   483 34AB A0 08			ldy #Spr_Delta_Y_Sign
+   484 34AD B1 88			lda (Ptr_Lo),y
+   485 34AF 30 21			bmi Y_Done							; Already heading up
+   486 34B1 20 DA 33			jsr Reverse_Y
+   487 34B4 4C D2 34			jmp Y_Done
+   488
+   489 				; Moving up: underflow wraps Y_Pos above $D0
+   490 34B7			Y_Check_Top
+   491 34B7 A0 04			ldy #Spr_Y_Pos
+   492 34B9 B1 88			lda (Ptr_Lo),y
+   493 34BB C9 D1			cmp #$D1
+   494 34BD 90 13			bcc Y_Done
+   495 34BF A9 00			lda #$00
+   496 34C1 A0 04			ldy #Spr_Y_Pos
+   497 34C3 91 88			sta (Ptr_Lo),y
+   498 34C5 A0 03			ldy #Spr_Y_Pos_Frac
+   499 34C7 91 88			sta (Ptr_Lo),y
+   500 34C9 A0 08			ldy #Spr_Delta_Y_Sign
+   501 34CB B1 88			lda (Ptr_Lo),y
+   502 34CD 10 03			bpl Y_Done							; Already heading down
+   503 34CF 20 DA 33			jsr Reverse_Y
+   504 34D2			Y_Done
+   505
+   506 				;--- Compute VBXE address and blit -------------------------------------------
+   507 34D2			Skip_Motion								; Jump here to bypass ball motion
+   508 34D2 A0 01			ldy #Spr_X_Pos_Lo
+   509 34D4 B1 88			lda (Ptr_Lo),y
+   510 34D6 85 80			sta Reg1							; X_Pos_Lo → Calculate_200 input
+   511 34D8 A0 02			ldy #Spr_X_Pos_Hi
+   512 34DA B1 88			lda (Ptr_Lo),y
+   513 34DC 85 81			sta Reg2							; X_Pos_Hi → Calculate_200 input
+   514 34DE A0 04			ldy #Spr_Y_Pos
+   515 34E0 B1 88			lda (Ptr_Lo),y
+   516 34E2 85 82			sta Reg3							; Y_Pos    → Calculate_200 input
+   517
+   518 34E4 20 B2 36			jsr Calculate_200					; → Reg4=Adr0, Reg5=Adr1, Reg6=Adr2
+   519
+   520 34E7 A5 83			lda Reg4
+   521 34E9 8D 06 25			sta VBXE_WINDOW+$500+BLT_BALL-BLT_BALL+Dest_Adr0
+   522 34EC A5 84			lda Reg5
+   523 34EE 8D 07 25			sta VBXE_WINDOW+$500+BLT_BALL-BLT_BALL+Dest_Adr1
+   524 34F1 A5 85			lda Reg6
+   525 34F3 8D 08 25			sta VBXE_WINDOW+$500+BLT_BALL-BLT_BALL+Dest_Adr2
+   526
+   527 34F6 20 FB 35			jsr Draw_Sprite						; Wait for blitter idle then fire BLT_BALL
+   528
+   529 				;--- Advance Ptr to next sprite ----------------------------------------------
+   530 34F9 18				clc
+   531 34FA A5 88			lda Ptr_Lo
+   532 34FC 69 0B			adc #Sprite_Size
+   533 34FE 85 88			sta Ptr_Lo
+   534 3500 90 02			bcc No_Hi_Bump
+   535 3502 E6 89			inc Ptr_Hi
+   536 3504			No_Hi_Bump
+   537 3504 E8				inx
+   538 3505 E4 8B			cpx Num_Sprites
+   539 3507 F0 03			beq Spr_Loop_Done					; All sprites done
+   540 3509 4C 03 34			jmp Spr_Loop						; Long branch workaround (loop body > 127 bytes)
+   541 350C			Spr_Loop_Done
+   542 350C A9 00			lda #$00
+   543 350E 8D 5F D6			sta VBXE_MA_BSEL					; Disable VBXE window
+   544 3511 60				rts
+   545
+   546 				;-----------------------------------------------------------------------------
+   547 				; Init_Objects - called once at startup
+   548 				; Starting positions read from Init_Pos_X_Hi/Lo and Init_Pos_Y tables.
+   549 				; Velocities read from Init_Delta_X/Y tables (unchanged).
+   550 				;-----------------------------------------------------------------------------
+   551 3512			Init_Objects
+   552 3512 A9 00			lda #<Bobs
+   553 3514 85 88			sta Ptr_Lo
+   554 3516 A9 55			lda #>Bobs
+   555 3518 85 89			sta Ptr_Hi
+   556 351A A2 00			ldx #$00
+   557
+   558 351C			Init_Spr_L
+   559 					; X position from tables - Frac always 0, Pos_Hi always 0
+   560 351C 8A				txa
+   561 351D A8				tay
+   562 351E B9 E2 37			lda Init_Pos_X_Lo,y
+   563 3521 A0 01			ldy #Spr_X_Pos_Lo
+   564 3523 91 88			sta (Ptr_Lo),y
+   565 3525 A9 00			lda #$00
+   566 3527 A0 00			ldy #Spr_X_Pos_Frac
+   567 3529 91 88			sta (Ptr_Lo),y
+   568 352B A0 02			ldy #Spr_X_Pos_Hi
+   569 352D 91 88			sta (Ptr_Lo),y
+   570
+   571 					; Y position from table - Frac always 0
+   572 352F 8A				txa
+   573 3530 A8				tay
+   574 3531 B9 07 38			lda Init_Pos_Y,y
+   575 3534 A0 04			ldy #Spr_Y_Pos
+   576 3536 91 88			sta (Ptr_Lo),y
+   577 3538 A9 00			lda #$00
+   578 353A A0 03			ldy #Spr_Y_Pos_Frac
+   579 353C 91 88			sta (Ptr_Lo),y
+   580
+   581 					; Velocity from tables, indexed directly by object number
+   582 353E 8A				txa
+   583 353F A8				tay
+   584 3540 B9 4E 37			lda Init_Delta_X,y
+   585 3543 A0 07			ldy #Spr_Delta_X
+   586 3545 91 88			sta (Ptr_Lo),y
+   587
    588 3547 8A				txa
    589 3548 A8				tay
-   590 3549 B9 49 37			lda Init_Delta_X,y
-   591 354C A0 07			ldy #Spr_Delta_X
+   590 3549 B9 73 37			lda Init_Delta_X_Frac,y
+   591 354C A0 06			ldy #Spr_Delta_X_Frac
    592 354E 91 88			sta (Ptr_Lo),y
    593
-   594 3550 8A				txa
-   595 3551 A8				tay
-   596 3552 B9 6E 37			lda Init_Delta_X_Frac,y
-   597 3555 A0 06			ldy #Spr_Delta_X_Frac
-   598 3557 91 88			sta (Ptr_Lo),y
-   599
-   600 3559 A9 00			lda #$00							; Initially moving right
-   601 355B A0 05			ldy #Spr_Delta_X_Sign
+   594 3550 A9 00			lda #$00							; Initially moving right
+   595 3552 A0 05			ldy #Spr_Delta_X_Sign
+   596 3554 91 88			sta (Ptr_Lo),y
+   597
+   598 3556 8A				txa
+   599 3557 A8				tay
+   600 3558 B9 98 37			lda Init_Delta_Y,y
+   601 355B A0 0A			ldy #Spr_Delta_Y
    602 355D 91 88			sta (Ptr_Lo),y
    603
    604 355F 8A				txa
    605 3560 A8				tay
-   606 3561 B9 93 37			lda Init_Delta_Y,y
-   607 3564 A0 0A			ldy #Spr_Delta_Y
+   606 3561 B9 BD 37			lda Init_Delta_Y_Frac,y
+   607 3564 A0 09			ldy #Spr_Delta_Y_Frac
    608 3566 91 88			sta (Ptr_Lo),y
    609
-   610 3568 8A				txa
-   611 3569 A8				tay
-   612 356A B9 B8 37			lda Init_Delta_Y_Frac,y
-   613 356D A0 09			ldy #Spr_Delta_Y_Frac
-   614 356F 91 88			sta (Ptr_Lo),y
-   615
-   616 3571 A9 00			lda #$00							; Initially moving down
-   617 3573 A0 08			ldy #Spr_Delta_Y_Sign
-   618 3575 91 88			sta (Ptr_Lo),y
-   619
-   620 					; Advance struct pointer by Sprite_Size
-   621 3577 18				clc
-   622 3578 A5 88			lda Ptr_Lo
-   623 357A 69 0B			adc #Sprite_Size
-   624 357C 85 88			sta Ptr_Lo
-   625 357E 90 02			bcc No_PH_Bump
-   626 3580 E6 89			inc Ptr_Hi
-   627 3582			No_PH_Bump
-   628
-   629 3582 E8				inx
-   630 3583 E4 8B			cpx Num_Sprites
-   631 3585 D0 9E			bne Init_Spr_L
-   632 3587 60				rts
-   633
-   634 				;-----------------------------------------------------------------------------
-   635 				; Flip_Screen buffers
-   636 				;-----------------------------------------------------------------------------
-   637 3588			Flip_Screen
-   638 3588 A9 80			lda #$80
-   639 358A 8D 5F D6			sta VBXE_MA_BSEL
-   640 358D AD 05 24			lda VBXE_WINDOW+$405
-   641 3590 8D 08 25			sta VBXE_WINDOW+$500+BLT_BALL-BLT_BALL+8
-   642 3593 8D 1D 25			sta VBXE_WINDOW+$500+BLT_BAKGRND-BLT_BALL+8
-   643 3596 49 06			eor #6								; Flip screen between $20000 and $40000
-   644 3598 8D 05 24			sta VBXE_WINDOW+$405				; XDL_Attribute Adr2
-   645 359B 8D 1A 24			sta VBXE_WINDOW+$41A				; XDL_Normal Adr2 - kept in sync so Toggle_Colour_Map can't desync buffers
-   646 359E 60				rts
-   647
-   648 				;-----------------------------------------------------------------------------
-   649 				; Toggle_Colour_Map - switches the active XDL between XDL_Attribute and XDL_Normal
-   650 				;-----------------------------------------------------------------------------
-   651 359F			Toggle_Colour_Map
-   652 359F AD 88 04			lda Colour_Map_On
-   653 35A2 D0 04			bne Toggle_Colour_Map_Off
-   654 35A4 20 EC 35			jsr Enable_Colour_Map
-   655 35A7 60				rts
-   656 35A8			Toggle_Colour_Map_Off
-   657 35A8 20 D2 35			jsr Disable_Colour_Map
-   658 35AB 60				rts
-   659
-   660 				;-----------------------------------------------------------------------------
-   661 				; Toggle_Colour_Map - switches the active XDL between XDL_Attribute and XDL_Normal
-   662 				;-----------------------------------------------------------------------------
-   663 35AC			Toggle_Colour_Map_Values
-   664 35AC A9 80			lda #$00 | MEMAC_GLOBAL_ENABLE		; Bank $00 VBXE Window Enabled
-   665 35AE 8D 5F D6			sta VBXE_MA_BSEL
-   666
-   667 35B1 AD 89 04			lda Colour_Map_Val
-   668 35B4 49 01			eor #$01
-   669 35B6 8D 89 04			sta Colour_Map_Val
-   670 35B9 F0 09			beq Toggle_Colour_Map_Values_Set1
-   671
-   672 35BB A9 03			lda #$03							; Set PFPAL and OVPAL to 0
+   610 3568 A9 00			lda #$00							; Initially moving down
+   611 356A A0 08			ldy #Spr_Delta_Y_Sign
+   612 356C 91 88			sta (Ptr_Lo),y
+   613
+   614 					; Advance struct pointer by Sprite_Size
+   615 356E 18				clc
+   616 356F A5 88			lda Ptr_Lo
+   617 3571 69 0B			adc #Sprite_Size
+   618 3573 85 88			sta Ptr_Lo
+   619 3575 90 02			bcc No_PH_Bump
+   620 3577 E6 89			inc Ptr_Hi
+   621 3579			No_PH_Bump
+   622
+   623 3579 E8				inx
+   624 357A E4 8B			cpx Num_Sprites
+   625 357C D0 9E			bne Init_Spr_L
+   626 357E 60				rts
+   627
+   628 				;-----------------------------------------------------------------------------
+   629 				; Flip_Screen buffers
+   630 				;-----------------------------------------------------------------------------
+   631 357F			Flip_Screen
+   632 357F A9 80			lda #$80
+   633 3581 8D 5F D6			sta VBXE_MA_BSEL
+   634 3584 AD 05 24			lda VBXE_WINDOW+$405
+   635 3587 8D 08 25			sta VBXE_WINDOW+$500+BLT_BALL-BLT_BALL+8
+   636 358A 8D 1D 25			sta VBXE_WINDOW+$500+BLT_BAKGRND-BLT_BALL+8
+   637 358D 49 06			eor #6								; Flip screen between $20000 and $40000
+   638 358F 8D 05 24			sta VBXE_WINDOW+$405				; XDL_Attribute Adr2
+   639 3592 8D 1A 24			sta VBXE_WINDOW+$41A				; XDL_Normal Adr2 - kept in sync so Toggle_Colour_Map can't desync buffers
+   640 3595 60				rts
+   641
+   642 				;-----------------------------------------------------------------------------
+   643 				; Toggle_Colour_Map - switches the active XDL between XDL_Attribute and XDL_Normal
+   644 				;-----------------------------------------------------------------------------
+   645 3596			Toggle_Colour_Map
+   646 3596 AD 88 04			lda Colour_Map_On
+   647 3599 D0 04			bne Toggle_Colour_Map_Off
+   648 359B 20 E3 35			jsr Enable_Colour_Map
+   649 359E 60				rts
+   650 359F			Toggle_Colour_Map_Off
+   651 359F 20 C9 35			jsr Disable_Colour_Map
+   652 35A2 60				rts
+   653
+   654 				;-----------------------------------------------------------------------------
+   655 				; Toggle_Colour_Map - switches the active XDL between XDL_Attribute and XDL_Normal
+   656 				;-----------------------------------------------------------------------------
+   657 35A3			Toggle_Colour_Map_Values
+   658 35A3 A9 80			lda #$00 | MEMAC_GLOBAL_ENABLE		; Bank $00 VBXE Window Enabled
+   659 35A5 8D 5F D6			sta VBXE_MA_BSEL
+   660
+   661 35A8 AD 89 04			lda Colour_Map_Val
+   662 35AB 49 01			eor #$01
+   663 35AD 8D 89 04			sta Colour_Map_Val
+   664 35B0 F0 09			beq Toggle_Colour_Map_Values_Set1
+   665
+   666 35B2 A9 00			lda #$00							; Set PFPAL and OVPAL to 0
+   667 35B4 8D 4F 25			sta VBXE_WINDOW + BLT_SETUP_CMAP_1-BLT_BALL + $510
+   668 35B7 20 68 36			jsr Setup_Cmap1
+   669
+   670 35BA 60				rts
+   671 35BB			Toggle_Colour_Map_Values_Set1
+   672 35BB A9 50			lda #$50							; Set PFPAL and OVPAL to 1
    673 35BD 8D 4F 25			sta VBXE_WINDOW + BLT_SETUP_CMAP_1-BLT_BALL + $510
-   674 35C0 20 71 36			jsr Setup_Cmap1
+   674 35C0 20 68 36			jsr Setup_Cmap1
    675
-   676 35C3 60				rts
-   677 35C4			Toggle_Colour_Map_Values_Set1
-   678 35C4 A9 53			lda #$53							; Set PFPAL and OVPAL to 1
-   679 35C6 8D 4F 25			sta VBXE_WINDOW + BLT_SETUP_CMAP_1-BLT_BALL + $510
-   680 35C9 20 71 36			jsr Setup_Cmap1
-   681
-   682 35CC A9 00			lda #MEMAC_GLOBAL_DISABLE			; USE CPU address space
-   683 35CE 8D 5F D6			sta VBXE_MA_BSEL
-   684
-   685 35D1 60				rts
-   686
-   687 				;-----------------------------------------------------------------------------
-   688 				; Disable_Colour_Map (Point XDL to XDL_Normal, offset $15 from XDL_Attribute)
-   689 				;-----------------------------------------------------------------------------
-   690 35D2			Disable_Colour_Map
-   691 35D2 A9 00			lda #$00
-   692 35D4 8D 43 D6			sta VBXE_XDL_ADR2
-   693 35D7 A9 04			lda #$04
-   694 35D9 8D 42 D6			sta VBXE_XDL_ADR1
-   695 35DC A9 15			lda #$15
-   696 35DE 8D 41 D6			sta VBXE_XDL_ADR0
-   697
-   698 35E1 A9 01			lda #%00000001						; XDL Enabled and transparent color index 0
-   699 35E3 8D 40 D6			sta VBXE_VIDEO_CONTROL
-   700
-   701 35E6 A9 00			lda #$00
-   702 35E8 8D 88 04			sta Colour_Map_On
-   703 35EB 60				rts
-   704
-   705 				;-----------------------------------------------------------------------------
-   706 				; Enable_Colour_Map (Point XDL to XDL_Attribute)
-   707 				;-----------------------------------------------------------------------------
-   708 35EC			Enable_Colour_Map
-   709 35EC A9 00			lda #$00
-   710 35EE 8D 41 D6			sta VBXE_XDL_ADR0
-   711 35F1 8D 43 D6			sta VBXE_XDL_ADR2
-   712 35F4 A9 04			lda #$04
-   713 35F6 8D 42 D6			sta VBXE_XDL_ADR1
-   714
-   715 35F9 A9 03			lda #%00000011						; XDL,XCOLOR Enabled and transparent color index 0
-   716 35FB 8D 40 D6			sta VBXE_VIDEO_CONTROL
-   717
-   718 35FE A9 01			lda #$01
-   719 3600 8D 88 04			sta Colour_Map_On
-   720 3603 60				rts
-   721
-   722 				;-----------------------------------------------------------------------------
-   723 				; Draw_Sprite - fire BLT_BALL; destination already written to BCB by Set_Positions
-   724 				;-----------------------------------------------------------------------------
-   725 3604			Draw_Sprite
-   726 3604 A9 00			lda #BLT_BALL-BLT_BALL
-   727 3606 8D 50 D6			sta VBXE_BL_ADR0
-   728 3609 A9 00			lda #$00
-   729 360B 8D 52 D6			sta VBXE_BL_ADR2
-   730 360E A9 05			lda #$05
-   731 3610 8D 51 D6			sta VBXE_BL_ADR1
-   732 3613			Draw_Sprite_L1
-   733 3613 AD 53 D6			lda VBXE_BLITTER_BUSY
-   734 3616 D0 FB			bne Draw_Sprite_L1					; Wait for blitter idle
-   735 3618 A9 01			lda #$01
-   736 361A 8D 53 D6			sta VBXE_BLITTER_START				; Fire
-   737 361D 60				rts
-   738
-   739 				;-----------------------------------------------------------------------------
-   740 				; Wait For VSync (locks to the refresh rate, PAL=50Hz, NTSC=60Hz)  Thanks tebe
-   741 				;-----------------------------------------------------------------------------
-   742 361E			Wait_For_Sync							; Hold until VCOUNT == 0
-   743 361E 2C 0B D4			bit VCOUNT
-   744 3621 30 FB			bmi *-3
-   745 3623 2C 0B D4			bit VCOUNT
-   746 3626 10 FB			bpl *-3
-   747
-   748 3628 20 2C 36			jsr Handle_Keys						; Take care of user input
-   749
-   750 362B 60				rts									; Else return to caller
-   751
-   752 				;-----------------------------------------------------------------------------
-   753 				; Handle_Keys
-   754 				;-----------------------------------------------------------------------------
-   755 362C			Handle_Keys
-   756 				; If present, the next lines will allow a "jump to exit" on a specific key press
-   757 362C AD FC 02			lda CH
-   758 362F C9 2F			cmp #$2F							; Press Q to quit
-   759 3631 F0 1D			beq Exit_Long
-   760 3633 C9 32			cmp #$32							; 0
-   761 3635 F0 07			beq Handle_0
-   762 3637 C9 1F			cmp #$1F							; 1
-   763 3639 F0 09			beq Handle_1
-   764 363B			Handle_Keys_Done						; No more keys to test
-   765 363B 4C 4A 36			jmp Read_Key_Done
-   766
-   767 363E			Handle_0
-   768 363E 20 9F 35			jsr Toggle_Colour_Map				; Toggle the Colour Map (Attribute XDL) on/off
-   769 3641 4C 4A 36			jmp Read_Key_Done
-   770
-   771 3644			Handle_1
-   772 3644 20 AC 35			jsr Toggle_Colour_Map_Values		; Toggle the Colour Map Byte 4 from $00 to $50
-   773 3647 4C 4A 36			jmp Read_Key_Done					; That is, set PFPAL and OVPAL to 0 or 1
-   774
-   775 364A			Read_Key_Done
-   776 364A A9 FF			lda #$FF
-   777 364C 8D FC 02			sta CH								; Clear last key pressed
-   778 364F 60				rts									; Else return to caller
-   779 3650			Exit_Long
-   780 3650 4C D2 31			jmp Cleanup_Exit					; Fix for branch out of range
-   781
-   782 				;-----------------------------------------------------------------------------
-   783 				; Clear_Screen via blitter
-   784 				;-----------------------------------------------------------------------------
-   785 3653			Clear_Screen
-   786 3653 A9 15			lda #BLT_BAKGRND-BLT_BALL
-   787 3655 8D 50 D6			sta VBXE_BL_ADR0					; Setup the blitter for memory fill operation
-   788 3658 A9 00			lda #$00
-   789 365A 8D 52 D6			sta VBXE_BL_ADR2					; See the description of BCB at the end of this
-   790 365D A9 05			lda #$05							; Source
-   791 365F 8D 51 D6			sta VBXE_BL_ADR1
-   792 3662 A9 00			lda #$00
-   793 3664			Clear_Screen_L1
-   794 3664 AD 53 D6			lda VBXE_BLITTER_BUSY
-   795 3667 C9 00			cmp #$00
-   796 3669 D0 F9			bne Clear_Screen_L1					; Wait for blitter to finish
-   797 366B A9 01			lda #$01
-   798 366D 8D 53 D6			sta VBXE_BLITTER_START				; Start the blit
-   799 3670 60				rts
-   800
-   801 				;-----------------------------------------------------------------------------
-   802 				; Setup_Cmap1 - Sets byte 4 for all cmap entries via blitter
-   803 				;-----------------------------------------------------------------------------
-   804 3671			Setup_Cmap1
-   805 3671 A9 3F			lda #BLT_SETUP_CMAP_1-BLT_BALL
-   806 3673 8D 50 D6			sta VBXE_BL_ADR0					; Setup the blitter for memory fill operation
-   807 3676 A9 00			lda #$00
-   808 3678 8D 52 D6			sta VBXE_BL_ADR2					; See the description of BCB at the end of this
-   809 367B A9 05			lda #$05							; Source
-   810 367D 8D 51 D6			sta VBXE_BL_ADR1
-   811 3680 A9 00			lda #$00
-   812 3682			Setup_Cmap1_L1
-   813 3682 AD 53 D6			lda VBXE_BLITTER_BUSY
-   814 3685 C9 00			cmp #$00
-   815 3687 D0 F9			bne Setup_Cmap1_L1					; Wait for blitter to finish
-   816 3689 A9 01			lda #$01
-   817 368B 8D 53 D6			sta VBXE_BLITTER_START				; Start the blit
-   818 368E 60				rts
-   819
+   676 35C3 A9 00			lda #MEMAC_GLOBAL_DISABLE			; USE CPU address space
+   677 35C5 8D 5F D6			sta VBXE_MA_BSEL
+   678
+   679 35C8 60				rts
+   680
+   681 				;-----------------------------------------------------------------------------
+   682 				; Disable_Colour_Map (Point XDL to XDL_Normal, offset $15 from XDL_Attribute)
+   683 				;-----------------------------------------------------------------------------
+   684 35C9			Disable_Colour_Map
+   685 35C9 A9 00			lda #$00
+   686 35CB 8D 43 D6			sta VBXE_XDL_ADR2
+   687 35CE A9 04			lda #$04
+   688 35D0 8D 42 D6			sta VBXE_XDL_ADR1
+   689 35D3 A9 15			lda #$15
+   690 35D5 8D 41 D6			sta VBXE_XDL_ADR0
+   691
+   692 35D8 A9 01			lda #%00000001						; XDL Enabled and transparent color index 0
+   693 35DA 8D 40 D6			sta VBXE_VIDEO_CONTROL
+   694
+   695 35DD A9 00			lda #$00
+   696 35DF 8D 88 04			sta Colour_Map_On
+   697 35E2 60				rts
+   698
+   699 				;-----------------------------------------------------------------------------
+   700 				; Enable_Colour_Map (Point XDL to XDL_Attribute)
+   701 				;-----------------------------------------------------------------------------
+   702 35E3			Enable_Colour_Map
+   703 35E3 A9 00			lda #$00
+   704 35E5 8D 41 D6			sta VBXE_XDL_ADR0
+   705 35E8 8D 43 D6			sta VBXE_XDL_ADR2
+   706 35EB A9 04			lda #$04
+   707 35ED 8D 42 D6			sta VBXE_XDL_ADR1
+   708
+   709 35F0 A9 03			lda #%00000011						; XDL,XCOLOR Enabled and transparent color index 0
+   710 35F2 8D 40 D6			sta VBXE_VIDEO_CONTROL
+   711
+   712 35F5 A9 01			lda #$01
+   713 35F7 8D 88 04			sta Colour_Map_On
+   714 35FA 60				rts
+   715
+   716 				;-----------------------------------------------------------------------------
+   717 				; Draw_Sprite - fire BLT_BALL; destination already written to BCB by Set_Positions
+   718 				;-----------------------------------------------------------------------------
+   719 35FB			Draw_Sprite
+   720 35FB A9 00			lda #BLT_BALL-BLT_BALL
+   721 35FD 8D 50 D6			sta VBXE_BL_ADR0
+   722 3600 A9 00			lda #$00
+   723 3602 8D 52 D6			sta VBXE_BL_ADR2
+   724 3605 A9 05			lda #$05
+   725 3607 8D 51 D6			sta VBXE_BL_ADR1
+   726 360A			Draw_Sprite_L1
+   727 360A AD 53 D6			lda VBXE_BLITTER_BUSY
+   728 360D D0 FB			bne Draw_Sprite_L1					; Wait for blitter idle
+   729 360F A9 01			lda #$01
+   730 3611 8D 53 D6			sta VBXE_BLITTER_START				; Fire
+   731 3614 60				rts
+   732
+   733 				;-----------------------------------------------------------------------------
+   734 				; Wait For VSync (locks to the refresh rate, PAL=50Hz, NTSC=60Hz)  Thanks tebe
+   735 				;-----------------------------------------------------------------------------
+   736 3615			Wait_For_Sync							; Hold until VCOUNT == 0
+   737 3615 2C 0B D4			bit VCOUNT
+   738 3618 30 FB			bmi *-3
+   739 361A 2C 0B D4			bit VCOUNT
+   740 361D 10 FB			bpl *-3
+   741
+   742 361F 20 23 36			jsr Handle_Keys						; Take care of user input
+   743
+   744 3622 60				rts									; Else return to caller
+   745
+   746 				;-----------------------------------------------------------------------------
+   747 				; Handle_Keys
+   748 				;-----------------------------------------------------------------------------
+   749 3623			Handle_Keys
+   750 				; If present, the next lines will allow a "jump to exit" on a specific key press
+   751 3623 AD FC 02			lda CH
+   752 3626 C9 2F			cmp #$2F							; Press Q to quit
+   753 3628 F0 1D			beq Exit_Long
+   754 362A C9 32			cmp #$32							; 0
+   755 362C F0 07			beq Handle_0
+   756 362E C9 1F			cmp #$1F							; 1
+   757 3630 F0 09			beq Handle_1
+   758 3632			Handle_Keys_Done						; No more keys to test
+   759 3632 4C 41 36			jmp Read_Key_Done
+   760
+   761 3635			Handle_0
+   762 3635 20 96 35			jsr Toggle_Colour_Map				; Toggle the Colour Map (Attribute XDL) on/off
+   763 3638 4C 41 36			jmp Read_Key_Done
+   764
+   765 363B			Handle_1
+   766 363B 20 A3 35			jsr Toggle_Colour_Map_Values		; Toggle the Colour Map Byte 4 from $00 to $50
+   767 363E 4C 41 36			jmp Read_Key_Done					; That is, set PFPAL and OVPAL to 0 or 1
+   768
+   769 3641			Read_Key_Done
+   770 3641 A9 FF			lda #$FF
+   771 3643 8D FC 02			sta CH								; Clear last key pressed
+   772 3646 60				rts									; Else return to caller
+   773 3647			Exit_Long
+   774 3647 4C D2 31			jmp Cleanup_Exit					; Fix for branch out of range
+   775
+   776 				;-----------------------------------------------------------------------------
+   777 				; Clear_Screen via blitter
+   778 				;-----------------------------------------------------------------------------
+   779 364A			Clear_Screen
+   780 364A A9 15			lda #BLT_BAKGRND-BLT_BALL
+   781 364C 8D 50 D6			sta VBXE_BL_ADR0					; Setup the blitter for memory fill operation
+   782 364F A9 00			lda #$00
+   783 3651 8D 52 D6			sta VBXE_BL_ADR2					; See the description of BCB at the end of this
+   784 3654 A9 05			lda #$05							; Source
+   785 3656 8D 51 D6			sta VBXE_BL_ADR1
+   786 3659 A9 00			lda #$00
+   787 365B			Clear_Screen_L1
+   788 365B AD 53 D6			lda VBXE_BLITTER_BUSY
+   789 365E C9 00			cmp #$00
+   790 3660 D0 F9			bne Clear_Screen_L1					; Wait for blitter to finish
+   791 3662 A9 01			lda #$01
+   792 3664 8D 53 D6			sta VBXE_BLITTER_START				; Start the blit
+   793 3667 60				rts
+   794
+   795 				;-----------------------------------------------------------------------------
+   796 				; Setup_Cmap1 - Sets byte 4 for all cmap entries via blitter
+   797 				;-----------------------------------------------------------------------------
+   798 3668			Setup_Cmap1
+   799 3668 A9 3F			lda #BLT_SETUP_CMAP_1-BLT_BALL
+   800 366A 8D 50 D6			sta VBXE_BL_ADR0					; Setup the blitter for memory fill operation
+   801 366D A9 00			lda #$00
+   802 366F 8D 52 D6			sta VBXE_BL_ADR2					; See the description of BCB at the end of this
+   803 3672 A9 05			lda #$05							; Source
+   804 3674 8D 51 D6			sta VBXE_BL_ADR1
+   805 3677 A9 00			lda #$00
+   806 3679			Setup_Cmap1_L1
+   807 3679 AD 53 D6			lda VBXE_BLITTER_BUSY
+   808 367C C9 00			cmp #$00
+   809 367E D0 F9			bne Setup_Cmap1_L1					; Wait for blitter to finish
+   810 3680 A9 01			lda #$01
+   811 3682 8D 53 D6			sta VBXE_BLITTER_START				; Start the blit
+   812 3685			Setup_Cmap1_L2
+   813 3685 AD 53 D6			lda VBXE_BLITTER_BUSY
+   814 3688 C9 00			cmp #$00
+   815 368A D0 F9			bne Setup_Cmap1_L2					; Wait for blitter to finish before returning
+   816 368C 60				rts
+   817
+   818 				;-----------------------------------------------------------------------------
+   819 				; Setup_Cmap2 - Sets byte 2 for all cmap entries via blitter
    820 				;-----------------------------------------------------------------------------
-   821 				; Setup_Cmap2 - Sets byte 2 for all cmap entries via blitter
-   822 				;-----------------------------------------------------------------------------
-   823 368F			Setup_Cmap2
-   824 368F A9 54			lda #BLT_SETUP_CMAP_2-BLT_BALL
-   825 3691 8D 50 D6			sta VBXE_BL_ADR0					; Setup the blitter for memory fill operation
-   826 3694 A9 00			lda #$00
-   827 3696 8D 52 D6			sta VBXE_BL_ADR2					; See the description of BCB at the end of this
-   828 3699 A9 05			lda #$05							; Source
-   829 369B 8D 51 D6			sta VBXE_BL_ADR1
-   830 369E A9 00			lda #$00
-   831 36A0			Setup_Cmap2_L1
-   832 36A0 AD 53 D6			lda VBXE_BLITTER_BUSY
-   833 36A3 C9 00			cmp #$00
-   834 36A5 D0 F9			bne Setup_Cmap2_L1					; Wait for blitter to finish
-   835 36A7 A9 01			lda #$01
-   836 36A9 8D 53 D6			sta VBXE_BLITTER_START				; Start the blit
-   837 36AC 60				rts
-   838
-   839 				;-----------------------------------------------------------------------------
-   840 				; Calculate_200
-   841 				;   Reg1 = X_Pos_L	Object Horizontal Position (Col)
-   842 				;   Reg2 = X_Pos_H	Object Horizontal Position (Col)
-   843 				;   Reg3 = Y_Pos	Object Vertical Position   (Row)
-   844 				;   Reg4 = Adr0	   VBXE Blitter Address
-   845 				;   Reg5 = Adr1	   VBXE Blitter Address
-   846 				;   Reg6 = Adr2	   VBXE Blitter Address
-   847 				;   Reg7 = XDL destination high byte (either 0 or 2)
-   848 				;-----------------------------------------------------------------------------
-   849 36AD			Calculate_200
-   850 				; Because we are double buffering, we need to write to the backbuffer
-   851 				; So load the buffer address from the XDL but use the other one
-   852 36AD AD 5F D6			lda VBXE_MA_BSEL
-   853 36B0 48				pha									; Store it
-   854
-   855 36B1 A9 80			lda #$80							; Bank $00 with global enable (XDL lives in bank $00)
-   856 36B3 8D 5F D6			sta VBXE_MA_BSEL
-   857
-   858 36B6 AD 05 24			lda VBXE_WINDOW + $405				; XDL Adr2 (byte 5 of XDL at VBXE_WINDOW+$400)
-   859 36B9 49 06			eor #$06							; Flip between $02 ($020000) and $04 ($040000)
-   860 36BB 85 86			sta Reg7							; Reg7 = backbuffer Adr2
-   861
-   862 				; Calculate the start of VRAM (Reg4, Reg5, Reg6) for the given Y-Pos
-   863 36BD A9 00			lda #$00
-   864 36BF 85 83			sta Reg4							; Reset to initial value
-   865 36C1 85 85			sta Reg6							; Reset to initial value
-   866 36C3 A5 82			lda Reg3							; Y_Pos
-   867 36C5 10 04			bpl Skip_Reg6						; If A <= $7F Reg6 will be 0
-   868 36C7 A0 01			ldy #$01							; Else
-   869 36C9 84 85			sty Reg6							; Reg6 = 1
-   870 36CB			Skip_Reg6
-   871 36CB 0A				asl									; Multiply by 2
-   872 36CC 85 84			sta Reg5
-   873
-   874 				; Now move into that line in VRAM based on the X-Position
-   875 36CE 18				clc									; Prepare to add
-   876 36CF A5 80			lda Reg1							; X_Pos_L
-   877 36D1 65 83			adc Reg4							; Add Adr0
-   878 36D3 85 83			sta Reg4							; Store it
-   879 36D5 A5 81			lda Reg2							; X_Pos_H
-   880 36D7 65 84			adc Reg5							; Add Adr1
-   881 36D9 85 84			sta Reg5							; Store it
-   882 36DB A9 00			lda #$00
-   883 36DD 65 85			adc Reg6							; Account for overflow
-   884 36DF 85 85			sta Reg6							; Store Adr2
-   885
-   886 				; Set Adr 2 depending on which buffer we are writing to
-   887 36E1 18				clc									; Prepare to add
-   888 36E2 A5 86			lda Reg7
-   889 36E4 65 85			adc Reg6							; Carry flag weill NEVER be set, as value will only ever be 0-1 or 2-3
-   890 36E6 85 85			sta Reg6
-   891 36E8			Calculate_200_End						; This takes on average $37(55) cycles, code is $22(34) bytes TODO: Calculate new cycle time based on code to handle double buffering
-   892 36E8 68				pla
-   893 36E9 8D 5F D6			sta VBXE_MA_BSEL					; Restore to initial value
-   894
-   895 36EC 60				rts
+   821 368D			Setup_Cmap2
+   822 368D A9 54			lda #BLT_SETUP_CMAP_2-BLT_BALL
+   823 368F 8D 50 D6			sta VBXE_BL_ADR0					; Setup the blitter for memory fill operation
+   824 3692 A9 00			lda #$00
+   825 3694 8D 52 D6			sta VBXE_BL_ADR2					; See the description of BCB at the end of this
+   826 3697 A9 05			lda #$05							; Source
+   827 3699 8D 51 D6			sta VBXE_BL_ADR1
+   828 369C A9 00			lda #$00
+   829 369E			Setup_Cmap2_L1
+   830 369E AD 53 D6			lda VBXE_BLITTER_BUSY
+   831 36A1 C9 00			cmp #$00
+   832 36A3 D0 F9			bne Setup_Cmap2_L1					; Wait for blitter to finish
+   833 36A5 A9 01			lda #$01
+   834 36A7 8D 53 D6			sta VBXE_BLITTER_START				; Start the blit
+   835 36AA			Setup_Cmap2_L2
+   836 36AA AD 53 D6			lda VBXE_BLITTER_BUSY
+   837 36AD C9 00			cmp #$00
+   838 36AF D0 F9			bne Setup_Cmap2_L2					; Wait for blitter to finish before returning
+   839 36B1 60				rts
+   840
+   841 				;-----------------------------------------------------------------------------
+   842 				; Calculate_200
+   843 				;   Reg1 = X_Pos_L	Object Horizontal Position (Col)
+   844 				;   Reg2 = X_Pos_H	Object Horizontal Position (Col)
+   845 				;   Reg3 = Y_Pos	Object Vertical Position   (Row)
+   846 				;   Reg4 = Adr0	   VBXE Blitter Address
+   847 				;   Reg5 = Adr1	   VBXE Blitter Address
+   848 				;   Reg6 = Adr2	   VBXE Blitter Address
+   849 				;   Reg7 = XDL destination high byte (either 0 or 2)
+   850 				;-----------------------------------------------------------------------------
+   851 36B2			Calculate_200
+   852 				; Because we are double buffering, we need to write to the backbuffer
+   853 				; So load the buffer address from the XDL but use the other one
+   854 36B2 AD 5F D6			lda VBXE_MA_BSEL
+   855 36B5 48				pha									; Store it
+   856
+   857 36B6 A9 80			lda #$80							; Bank $00 with global enable (XDL lives in bank $00)
+   858 36B8 8D 5F D6			sta VBXE_MA_BSEL
+   859
+   860 36BB AD 05 24			lda VBXE_WINDOW + $405				; XDL Adr2 (byte 5 of XDL at VBXE_WINDOW+$400)
+   861 36BE 49 06			eor #$06							; Flip between $02 ($020000) and $04 ($040000)
+   862 36C0 85 86			sta Reg7							; Reg7 = backbuffer Adr2
+   863
+   864 				; Calculate the start of VRAM (Reg4, Reg5, Reg6) for the given Y-Pos
+   865 36C2 A9 00			lda #$00
+   866 36C4 85 83			sta Reg4							; Reset to initial value
+   867 36C6 85 85			sta Reg6							; Reset to initial value
+   868 36C8 A5 82			lda Reg3							; Y_Pos
+   869 36CA 10 04			bpl Skip_Reg6						; If A <= $7F Reg6 will be 0
+   870 36CC A0 01			ldy #$01							; Else
+   871 36CE 84 85			sty Reg6							; Reg6 = 1
+   872 36D0			Skip_Reg6
+   873 36D0 0A				asl									; Multiply by 2
+   874 36D1 85 84			sta Reg5
+   875
+   876 				; Now move into that line in VRAM based on the X-Position
+   877 36D3 18				clc									; Prepare to add
+   878 36D4 A5 80			lda Reg1							; X_Pos_L
+   879 36D6 65 83			adc Reg4							; Add Adr0
+   880 36D8 85 83			sta Reg4							; Store it
+   881 36DA A5 81			lda Reg2							; X_Pos_H
+   882 36DC 65 84			adc Reg5							; Add Adr1
+   883 36DE 85 84			sta Reg5							; Store it
+   884 36E0 A9 00			lda #$00
+   885 36E2 65 85			adc Reg6							; Account for overflow
+   886 36E4 85 85			sta Reg6							; Store Adr2
+   887
+   888 				; Set Adr 2 depending on which buffer we are writing to
+   889 36E6 18				clc									; Prepare to add
+   890 36E7 A5 86			lda Reg7
+   891 36E9 65 85			adc Reg6							; Carry flag weill NEVER be set, as value will only ever be 0-1 or 2-3
+   892 36EB 85 85			sta Reg6
+   893 36ED			Calculate_200_End						; This takes on average $37(55) cycles, code is $22(34) bytes TODO: Calculate new cycle time based on code to handle double buffering
+   894 36ED 68				pla
+   895 36EE 8D 5F D6			sta VBXE_MA_BSEL					; Restore to initial value
    896
-   897 				;-----------------------------------------------------------------------------
-   898 				; Setup_DisplayList - Points ANTIC to a Display List that will be in VBXE RAM
+   897 36F1 60				rts
+   898
    899 				;-----------------------------------------------------------------------------
-   900 36ED			Setup_DisplayList
-   901 36ED AD 2F 02			lda SDMCTL
-   902 36F0 48				pha									; Save it
-   903
-   904 36F1 A9 00			lda #$00							; Turn off ANTIC DMA
-   905 36F3 8D 2F 02			sta SDMCTL							; To safely set SDLSTL
-   906
-   907 36F6 A9 00			lda <Display_List
-   908 36F8 8D 30 02			sta SDLSTL
-   909 36FB A9 59			lda >Display_List
-   910 36FD 8D 31 02			sta SDLSTH
-   911
-   912 3700 68				pla									; Restore it
-   913 3701 8D 2F 02			sta SDMCTL
-   914
-   915 3704 60				rts									; Go Home
+   900 				; Setup_DisplayList - Points ANTIC to a Display List that will be in VBXE RAM
+   901 				;-----------------------------------------------------------------------------
+   902 36F2			Setup_DisplayList
+   903 36F2 AD 2F 02			lda SDMCTL
+   904 36F5 48				pha									; Save it
+   905
+   906 36F6 A9 00			lda #$00							; Turn off ANTIC DMA
+   907 36F8 8D 2F 02			sta SDMCTL							; To safely set SDLSTL
+   908
+   909 36FB A9 00			lda <Display_List
+   910 36FD 8D 30 02			sta SDLSTL
+   911 3700 A9 59			lda >Display_List
+   912 3702 8D 31 02			sta SDLSTH
+   913
+   914 3705 68				pla									; Restore it
+   915 3706 8D 2F 02			sta SDMCTL
    916
-   917 				;-----------------------------------------------------------------------------
-   918 				; Generate_Colour_Map
-   919 				; This will generate the 9600 byte colour map used by the VBXE
-   920 				;-----------------------------------------------------------------------------
-   921 3705			Generate_Colour_Map
-   922 				; 	lda #$00
-   923 				; 	sta Ptr_Lo
-   924 				; 	lda #$06
-   925 				; 	sta Ptr_Hi							; Initialize destination pointer to $0600
-   926
-   927 				; 	lda #$01
-   928 				; 	sta Reg1							; Running colour accumulator
-   929
-   930 				; 	ldx #$00							; Object counter (0-15)
-   931 				; obj_loop
-   932 				; 	ldy #$00							; Row counter (0-14)
-   933 				; row_loop
-   934 				; 	lda #$00							; Default: blank row
-   935 				; 	cpy #$00
-   936 				; 	beq store_colour
-   937 				; 	cpy #$0E
+   917 3709 60				rts									; Go Home
+   918
+   919 				;-----------------------------------------------------------------------------
+   920 				; Generate_Colour_Map
+   921 				; This will generate the 9600 byte colour map used by the VBXE
+   922 				;-----------------------------------------------------------------------------
+   923 370A			Generate_Colour_Map
+   924 				; 	lda #$00
+   925 				; 	sta Ptr_Lo
+   926 				; 	lda #$06
+   927 				; 	sta Ptr_Hi							; Initialize destination pointer to $0600
+   928
+   929 				; 	lda #$01
+   930 				; 	sta Reg1							; Running colour accumulator
+   931
+   932 				; 	ldx #$00							; Object counter (0-15)
+   933 				; obj_loop
+   934 				; 	ldy #$00							; Row counter (0-14)
+   935 				; row_loop
+   936 				; 	lda #$00							; Default: blank row
+   937 				; 	cpy #$00
    938 				; 	beq store_colour
-   939 				; 	lda Reg1							; Non-blank row: use accumulator
-   940 				; 	inc Reg1
-   941 				; store_colour
-   942 				; 	sta (Ptr_Lo),Y
-   943
-   944 				; 	iny
-   945 				; 	cpy #$0F							; 15 rows per object
-   946 				; 	bne row_loop
-   947
-   948 				; ; Advance pointer by 15 to next object's base
-   949 				; 	lda Ptr_Lo
-   950 				; 	clc
-   951 				; 	adc #$0F
-   952 				; 	sta Ptr_Lo
-   953 				; 	bcc no_carry
-   954 				; 	inc Ptr_Hi
-   955 				; no_carry
-   956 				; 	inx
-   957 				; 	cpx #$10							; 16 objects
-   958 				; 	bne obj_loop
-   959
-   960 				; For debugging, skip all the 0 entries
-   961 3705 A2 EF			ldx #$EF
-   962 3707			Generate_Colour_Map_L1
-   963 3707 8A				txa									; Set $600-$6EF equal to
-   964 3708 9D 00 06			sta $0600,x							; $00-$EF
-   965 370B CA				dex
-   966 370C D0 F9			bne Generate_Colour_Map_L1
-   967 370E A9 00			lda #$00
-   968 3710 8D 00 06			sta $0600							; Pickup the final save
-   969
-   970 3713 20 71 36			jsr Setup_Cmap1						; Setup the Palette & Priority bits
-   971 3716 20 1A 37			jsr Setup_Colours
-   972
-   973 3719 60				rts
+   939 				; 	cpy #$0E
+   940 				; 	beq store_colour
+   941 				; 	lda Reg1							; Non-blank row: use accumulator
+   942 				; 	inc Reg1
+   943 				; store_colour
+   944 				; 	sta (Ptr_Lo),Y
+   945
+   946 				; 	iny
+   947 				; 	cpy #$0F							; 15 rows per object
+   948 				; 	bne row_loop
+   949
+   950 				; ; Advance pointer by 15 to next object's base
+   951 				; 	lda Ptr_Lo
+   952 				; 	clc
+   953 				; 	adc #$0F
+   954 				; 	sta Ptr_Lo
+   955 				; 	bcc no_carry
+   956 				; 	inc Ptr_Hi
+   957 				; no_carry
+   958 				; 	inx
+   959 				; 	cpx #$10							; 16 objects
+   960 				; 	bne obj_loop
+   961
+   962 				; For debugging, skip all the 0 entries
+   963 370A A2 EF			ldx #$EF
+   964 370C			Generate_Colour_Map_L1
+   965 370C 8A				txa									; Set $600-$6EF equal to
+   966 370D 9D 00 06			sta $0600,x							; $00-$EF
+   967 3710 CA				dex
+   968 3711 D0 F9			bne Generate_Colour_Map_L1
+   969 3713 A9 00			lda #$00
+   970 3715 8D 00 06			sta $0600							; Pickup the final save
+   971
+   972 3718 20 68 36			jsr Setup_Cmap1						; Setup the Palette & Priority bits
+   973 371B 20 1F 37			jsr Setup_Colours
    974
-   975 				;-----------------------------------------------------------------------------
-   976 				; Setup_Colours
-   977 				; Uses the temp table at $600 to setup the Attribute Colour Map
-   978 				;-----------------------------------------------------------------------------
-   979 371A			Setup_Colours
-   980 				; Turn on VBXE window so we can modify the BCB
-   981 371A A9 80			lda #$80							; Copy some data into VBXE address space (XDL, Blitter control blocks (BCB))
-   982 371C 8D 5F D6			sta VBXE_MA_BSEL
-   983
-   984 371F A2 00			ldx #$00							; Prepare to loop
-   985 3721			Setup_Colours_L1
-   986 3721 BD 00 06			lda $600,x							; Get the colour
-   987 3724 8D 64 25			sta VBXE_WINDOW+$554+$10			; BLT_SETUP_CMAP_2 starts at $0554 in VBXE bank 0, XOR Mask is offset $10
-   988
-   989 3727 20 8F 36			jsr Setup_Cmap2						; Setup a row of colours
+   975 371E 60				rts
+   976
+   977 				;-----------------------------------------------------------------------------
+   978 				; Setup_Colours
+   979 				; Uses the temp table at $600 to setup the Attribute Colour Map
+   980 				;-----------------------------------------------------------------------------
+   981 371F			Setup_Colours
+   982 				; Turn on VBXE window so we can modify the BCB
+   983 371F A9 80			lda #$80							; Copy some data into VBXE address space (XDL, Blitter control blocks (BCB))
+   984 3721 8D 5F D6			sta VBXE_MA_BSEL
+   985
+   986 3724 A2 00			ldx #$00							; Prepare to loop
+   987 3726			Setup_Colours_L1
+   988 3726 BD 00 06			lda $600,x							; Get the colour
+   989 3729 8D 64 25			sta VBXE_WINDOW+$554+$10			; BLT_SETUP_CMAP_2 starts at $0554 in VBXE bank 0, XOR Mask is offset $10
    990
-   991 				; Now we must do a 24-bit addition to get the next Destination Address (offset 6,7,8)
-   992 372A 18				clc
-   993 372B AD 5A 25			lda VBXE_WINDOW+$554+$06			; Dest Addr 2
-   994 372E 69 28			adc #$28							; Advance by one line ($28 bytes/line)
-   995 3730 8D 5A 25			sta VBXE_WINDOW+$554+$06			; Dest Addr 2
-   996
-   997 3733 AD 5B 25			lda VBXE_WINDOW+$554+$07			; Dest Addr 1
-   998 3736 69 00			adc #$00
-   999 3738 8D 5B 25			sta VBXE_WINDOW+$554+$07			; Dest Addr 1
-  1000
-  1001 373B AD 5C 25			lda VBXE_WINDOW+$554+$08			; Dest Addr 0
-  1002 373E 69 00			adc #$00
-  1003 3740 8D 5C 25			sta VBXE_WINDOW+$554+$08			; Dest Addr 1
-  1004
-  1005 3743 E8				inx
-  1006 3744 E0 EF			cpx #$EF
-  1007 3746 D0 D9			bne Setup_Colours_L1
-  1008
-  1009 3748 60				rts
-  1010 				;-----------------------------------------------------------------------------
-  1011 				; Subroutines END
+   991 372C 20 8D 36			jsr Setup_Cmap2						; Setup a row of colours
+   992
+   993 				; Now we must do a 24-bit addition to get the next Destination Address (offset 6,7,8)
+   994 372F 18				clc
+   995 3730 AD 5A 25			lda VBXE_WINDOW+$554+$06			; Dest Addr 2
+   996 3733 69 28			adc #$28							; Advance by one line ($28 bytes/line)
+   997 3735 8D 5A 25			sta VBXE_WINDOW+$554+$06			; Dest Addr 2
+   998
+   999 3738 AD 5B 25			lda VBXE_WINDOW+$554+$07			; Dest Addr 1
+  1000 373B 69 00			adc #$00
+  1001 373D 8D 5B 25			sta VBXE_WINDOW+$554+$07			; Dest Addr 1
+  1002
+  1003 3740 AD 5C 25			lda VBXE_WINDOW+$554+$08			; Dest Addr 0
+  1004 3743 69 00			adc #$00
+  1005 3745 8D 5C 25			sta VBXE_WINDOW+$554+$08			; Dest Addr 1
+  1006
+  1007 3748 E8				inx
+  1008 3749 E0 EF			cpx #$EF
+  1009 374B D0 D9			bne Setup_Colours_L1
+  1010
+  1011 374D 60				rts
   1012 				;-----------------------------------------------------------------------------
-  1013
+  1013 				; Subroutines END
   1014 				;-----------------------------------------------------------------------------
-  1015 				; Data Tables go here
+  1015
   1016 				;-----------------------------------------------------------------------------
-  1017 				; 37 velocity patterns - one per sprite, every (int,frac) pair unique
-  1018 				; X: integer $00-$03 cycles with period 4; frac rotates +$40 each int group
-  1019 				; Y: integer offset by 1 ($01-$03,$00); frac rotates +$20 relative to X → no correlation
-  1020 3749			Init_Delta_X
-  1021 3749 01 01 02 03 00 01 + 	dta $01,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03
-  1022 3759 00 01 02 03 00 01 + 	dta $00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03
-  1023 3769 00 01 02 03 00		dta $00,$01,$02,$03,$00
-  1024 376E			Init_Delta_X_Frac
-  1025 376E 00 40 80 C0 10 50 + 	dta $00,$40,$80,$C0,$10,$50,$90,$D0,$20,$60,$A0,$E0,$30,$70,$B0,$F0
-  1026 377E 40 80 C0 00 50 90 + 	dta $40,$80,$C0,$00,$50,$90,$D0,$10,$60,$A0,$E0,$20,$70,$B0,$F0,$30
-  1027 378E 80 C0 00 40 90		dta $80,$C0,$00,$40,$90
-  1028 3793			Init_Delta_Y
-  1029 3793 06 02 03 00 01 02 + 	dta $06,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$01,$01,$02,$03,$00
-  1030 37A3 01 02 03 00 01 02 + 	dta $01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00
-  1031 37B3 01 02 03 00 01		dta $01,$02,$03,$00,$01
-  1032 37B8			Init_Delta_Y_Frac
-  1033 37B8 00 60 A0 E0 30 70 + 	dta $00,$60,$A0,$E0,$30,$70,$B0,$F0,$40,$80,$C0,$00,$50,$90,$D0,$10
-  1034 37C8 60 A0 E0 20 70 B0 + 	dta $60,$A0,$E0,$20,$70,$B0,$F0,$30,$80,$C0,$00,$40,$90,$D0,$10,$50
-  1035 37D8 A0 E0 20 60 B0		dta $A0,$E0,$20,$60,$B0
-  1036
-  1037 				; Standard Atari ROM font for 3 and 7, laid out by hand, then auto-generated tables based on my grid
-  1038 37DD			Init_Pos_X_Lo
-  1039 37DD 12 24 36 48 5A 6C + 	dta $12,$24,$36,$48,$5A,$6C,$A2,$B4,$C6,$D8,$EA,$FC,$48,$5A,$A2,$EA	; Objs $00-$0F
-  1040 37ED FC 36 48 D8 EA 48 + 	dta $FC,$36,$48,$D8,$EA,$48,$5A,$C6,$D8,$12,$24,$5A,$6C,$B4,$C6,$24	; Objs $10-$1F
-  1041 37FD 36 48 5A B4 C6		dta $36,$48,$5A,$B4,$C6				; Objs $20-$24
-  1042 3802			Init_Pos_Y
-  1043 3802 0D 0D 0D 0D 0D 0D + 	dta $0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$1A,$1A,$1A,$1A	; Objs $00-$0F
-  1044 3812 1A 27 27 27 27 34 + 	dta $1A,$27,$27,$27,$27,$34,$34,$34,$34,$41,$41,$41,$41,$41,$41,$4E	; Objs $10-$1F
-  1045 3822 4E 4E 4E 4E 4E		dta $4E,$4E,$4E,$4E,$4E				; Objs $20-$24
-  1046
-  1047 					org $5900							; Ensure the Display_List is page aligned
-  1048 5900			Display_List							; 16 * 15 = 240 lines
-  1049 					;.byte $00							; 1 blank
-  1050 5900-5A11> 4F			.byte $4F							; Mode F, LMS @ SCREEN_RAM
-  1051 5901 00				.byte <SCREEN_RAM
-  1052 5902 80				.byte >SCREEN_RAM
-  1053 				.rept $0F
-  1055 						.BYTE $0F						
-  1058 					.BYTE $4F							
-  1059 					.BYTE <SCREEN_RAM
-  1060 					.BYTE >SCREEN_RAM
-  1061 				.endr
+  1017 				; Data Tables go here
+  1018 				;-----------------------------------------------------------------------------
+  1019 				; 37 velocity patterns - one per sprite, every (int,frac) pair unique
+  1020 				; X: integer $00-$03 cycles with period 4; frac rotates +$40 each int group
+  1021 				; Y: integer offset by 1 ($01-$03,$00); frac rotates +$20 relative to X → no correlation
+  1022 374E			Init_Delta_X
+  1023 374E 01 01 02 03 00 01 + 	dta $01,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03
+  1024 375E 00 01 02 03 00 01 + 	dta $00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03
+  1025 376E 00 01 02 03 00		dta $00,$01,$02,$03,$00
+  1026 3773			Init_Delta_X_Frac
+  1027 3773 00 40 80 C0 10 50 + 	dta $00,$40,$80,$C0,$10,$50,$90,$D0,$20,$60,$A0,$E0,$30,$70,$B0,$F0
+  1028 3783 40 80 C0 00 50 90 + 	dta $40,$80,$C0,$00,$50,$90,$D0,$10,$60,$A0,$E0,$20,$70,$B0,$F0,$30
+  1029 3793 80 C0 00 40 90		dta $80,$C0,$00,$40,$90
+  1030 3798			Init_Delta_Y
+  1031 3798 06 02 03 00 01 02 + 	dta $06,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$01,$01,$02,$03,$00
+  1032 37A8 01 02 03 00 01 02 + 	dta $01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00
+  1033 37B8 01 02 03 00 01		dta $01,$02,$03,$00,$01
+  1034 37BD			Init_Delta_Y_Frac
+  1035 37BD 00 60 A0 E0 30 70 + 	dta $00,$60,$A0,$E0,$30,$70,$B0,$F0,$40,$80,$C0,$00,$50,$90,$D0,$10
+  1036 37CD 60 A0 E0 20 70 B0 + 	dta $60,$A0,$E0,$20,$70,$B0,$F0,$30,$80,$C0,$00,$40,$90,$D0,$10,$50
+  1037 37DD A0 E0 20 60 B0		dta $A0,$E0,$20,$60,$B0
+  1038
+  1039 				; Standard Atari ROM font for 3 and 7, laid out by hand, then auto-generated tables based on my grid
+  1040 37E2			Init_Pos_X_Lo
+  1041 37E2 12 24 36 48 5A 6C + 	dta $12,$24,$36,$48,$5A,$6C,$A2,$B4,$C6,$D8,$EA,$FC,$48,$5A,$A2,$EA	; Objs $00-$0F
+  1042 37F2 FC 36 48 D8 EA 48 + 	dta $FC,$36,$48,$D8,$EA,$48,$5A,$C6,$D8,$12,$24,$5A,$6C,$B4,$C6,$24	; Objs $10-$1F
+  1043 3802 36 48 5A B4 C6		dta $36,$48,$5A,$B4,$C6				; Objs $20-$24
+  1044 3807			Init_Pos_Y
+  1045 3807 0D 0D 0D 0D 0D 0D + 	dta $0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$1A,$1A,$1A,$1A	; Objs $00-$0F
+  1046 3817 1A 27 27 27 27 34 + 	dta $1A,$27,$27,$27,$27,$34,$34,$34,$34,$41,$41,$41,$41,$41,$41,$4E	; Objs $10-$1F
+  1047 3827 4E 4E 4E 4E 4E		dta $4E,$4E,$4E,$4E,$4E				; Objs $20-$24
+  1048
+  1049 					org $5900							; Ensure the Display_List is page aligned
+  1050 5900			Display_List							; 16 * 15 = 240 lines
+  1051 					;.byte $00							; 1 blank
+  1052 5900-5A11> 4F			.byte $4F							; Mode F, LMS @ SCREEN_RAM
+  1053 5901 00				.byte <SCREEN_RAM
+  1054 5902 80				.byte >SCREEN_RAM
+  1055 				.rept $0F
+  1057 						.BYTE $0F						
+  1060 					.BYTE $4F							
+  1061 					.BYTE <SCREEN_RAM
+  1062 					.BYTE >SCREEN_RAM
+  1063 				.endr
 Source: REPT
-  1061 				.endr
+  1063 				.endr
 Source: REPT
-  1055 5903 0F					.BYTE $0F						
-  1055 5904 0F					.BYTE $0F						
-  1055 5905 0F					.BYTE $0F						
-  1055 5906 0F					.BYTE $0F						
-  1055 5907 0F					.BYTE $0F						
-  1055 5908 0F					.BYTE $0F						
-  1055 5909 0F					.BYTE $0F						
-  1055 590A 0F					.BYTE $0F						
-  1055 590B 0F					.BYTE $0F						
-  1055 590C 0F					.BYTE $0F						
-  1055 590D 0F					.BYTE $0F						
-  1055 590E 0F					.BYTE $0F						
-  1055 590F 0F					.BYTE $0F						
-  1055 5910 0F					.BYTE $0F						
+  1057 5903 0F					.BYTE $0F						
+  1057 5904 0F					.BYTE $0F						
+  1057 5905 0F					.BYTE $0F						
+  1057 5906 0F					.BYTE $0F						
+  1057 5907 0F					.BYTE $0F						
+  1057 5908 0F					.BYTE $0F						
+  1057 5909 0F					.BYTE $0F						
+  1057 590A 0F					.BYTE $0F						
+  1057 590B 0F					.BYTE $0F						
+  1057 590C 0F					.BYTE $0F						
+  1057 590D 0F					.BYTE $0F						
+  1057 590E 0F					.BYTE $0F						
+  1057 590F 0F					.BYTE $0F						
+  1057 5910 0F					.BYTE $0F						
 Source: demo.asm
-  1054 5911 4F				.BYTE $4F							
-  1054 5912 00				.BYTE <SCREEN_RAM
-  1054 5913 80				.BYTE >SCREEN_RAM
-  1054 				.endr
+  1056 5911 4F				.BYTE $4F							
+  1056 5912 00				.BYTE <SCREEN_RAM
+  1056 5913 80				.BYTE >SCREEN_RAM
+  1056 				.endr
 Source: REPT
-  1055 5914 0F					.BYTE $0F						
-  1055 5915 0F					.BYTE $0F						
-  1055 5916 0F					.BYTE $0F						
-  1055 5917 0F					.BYTE $0F						
-  1055 5918 0F					.BYTE $0F						
-  1055 5919 0F					.BYTE $0F						
-  1055 591A 0F					.BYTE $0F						
-  1055 591B 0F					.BYTE $0F						
-  1055 591C 0F					.BYTE $0F						
-  1055 591D 0F					.BYTE $0F						
-  1055 591E 0F					.BYTE $0F						
-  1055 591F 0F					.BYTE $0F						
-  1055 5920 0F					.BYTE $0F						
-  1055 5921 0F					.BYTE $0F						
+  1057 5914 0F					.BYTE $0F						
+  1057 5915 0F					.BYTE $0F						
+  1057 5916 0F					.BYTE $0F						
+  1057 5917 0F					.BYTE $0F						
+  1057 5918 0F					.BYTE $0F						
+  1057 5919 0F					.BYTE $0F						
+  1057 591A 0F					.BYTE $0F						
+  1057 591B 0F					.BYTE $0F						
+  1057 591C 0F					.BYTE $0F						
+  1057 591D 0F					.BYTE $0F						
+  1057 591E 0F					.BYTE $0F						
+  1057 591F 0F					.BYTE $0F						
+  1057 5920 0F					.BYTE $0F						
+  1057 5921 0F					.BYTE $0F						
 Source: demo.asm
-  1054 5922 4F				.BYTE $4F							
-  1054 5923 00				.BYTE <SCREEN_RAM
-  1054 5924 80				.BYTE >SCREEN_RAM
-  1054 				.endr
+  1056 5922 4F				.BYTE $4F							
+  1056 5923 00				.BYTE <SCREEN_RAM
+  1056 5924 80				.BYTE >SCREEN_RAM
+  1056 				.endr
 Source: REPT
-  1055 5925 0F					.BYTE $0F						
-  1055 5926 0F					.BYTE $0F						
-  1055 5927 0F					.BYTE $0F						
-  1055 5928 0F					.BYTE $0F						
-  1055 5929 0F					.BYTE $0F						
-  1055 592A 0F					.BYTE $0F						
-  1055 592B 0F					.BYTE $0F						
-  1055 592C 0F					.BYTE $0F						
-  1055 592D 0F					.BYTE $0F						
-  1055 592E 0F					.BYTE $0F						
-  1055 592F 0F					.BYTE $0F						
-  1055 5930 0F					.BYTE $0F						
-  1055 5931 0F					.BYTE $0F						
-  1055 5932 0F					.BYTE $0F						
+  1057 5925 0F					.BYTE $0F						
+  1057 5926 0F					.BYTE $0F						
+  1057 5927 0F					.BYTE $0F						
+  1057 5928 0F					.BYTE $0F						
+  1057 5929 0F					.BYTE $0F						
+  1057 592A 0F					.BYTE $0F						
+  1057 592B 0F					.BYTE $0F						
+  1057 592C 0F					.BYTE $0F						
+  1057 592D 0F					.BYTE $0F						
+  1057 592E 0F					.BYTE $0F						
+  1057 592F 0F					.BYTE $0F						
+  1057 5930 0F					.BYTE $0F						
+  1057 5931 0F					.BYTE $0F						
+  1057 5932 0F					.BYTE $0F						
 Source: demo.asm
-  1054 5933 4F				.BYTE $4F							
-  1054 5934 00				.BYTE <SCREEN_RAM
-  1054 5935 80				.BYTE >SCREEN_RAM
-  1054 				.endr
+  1056 5933 4F				.BYTE $4F							
+  1056 5934 00				.BYTE <SCREEN_RAM
+  1056 5935 80				.BYTE >SCREEN_RAM
+  1056 				.endr
 Source: REPT
-  1055 5936 0F					.BYTE $0F						
-  1055 5937 0F					.BYTE $0F						
-  1055 5938 0F					.BYTE $0F						
-  1055 5939 0F					.BYTE $0F						
-  1055 593A 0F					.BYTE $0F						
-  1055 593B 0F					.BYTE $0F						
-  1055 593C 0F					.BYTE $0F						
-  1055 593D 0F					.BYTE $0F						
-  1055 593E 0F					.BYTE $0F						
-  1055 593F 0F					.BYTE $0F						
-  1055 5940 0F					.BYTE $0F						
-  1055 5941 0F					.BYTE $0F						
-  1055 5942 0F					.BYTE $0F						
-  1055 5943 0F					.BYTE $0F						
+  1057 5936 0F					.BYTE $0F						
+  1057 5937 0F					.BYTE $0F						
+  1057 5938 0F					.BYTE $0F						
+  1057 5939 0F					.BYTE $0F						
+  1057 593A 0F					.BYTE $0F						
+  1057 593B 0F					.BYTE $0F						
+  1057 593C 0F					.BYTE $0F						
+  1057 593D 0F					.BYTE $0F						
+  1057 593E 0F					.BYTE $0F						
+  1057 593F 0F					.BYTE $0F						
+  1057 5940 0F					.BYTE $0F						
+  1057 5941 0F					.BYTE $0F						
+  1057 5942 0F					.BYTE $0F						
+  1057 5943 0F					.BYTE $0F						
 Source: demo.asm
-  1054 5944 4F				.BYTE $4F							
-  1054 5945 00				.BYTE <SCREEN_RAM
-  1054 5946 80				.BYTE >SCREEN_RAM
-  1054 				.endr
+  1056 5944 4F				.BYTE $4F							
+  1056 5945 00				.BYTE <SCREEN_RAM
+  1056 5946 80				.BYTE >SCREEN_RAM
+  1056 				.endr
 Source: REPT
-  1055 5947 0F					.BYTE $0F						
-  1055 5948 0F					.BYTE $0F						
-  1055 5949 0F					.BYTE $0F						
-  1055 594A 0F					.BYTE $0F						
-  1055 594B 0F					.BYTE $0F						
-  1055 594C 0F					.BYTE $0F						
-  1055 594D 0F					.BYTE $0F						
-  1055 594E 0F					.BYTE $0F						
-  1055 594F 0F					.BYTE $0F						
-  1055 5950 0F					.BYTE $0F						
-  1055 5951 0F					.BYTE $0F						
-  1055 5952 0F					.BYTE $0F						
-  1055 5953 0F					.BYTE $0F						
-  1055 5954 0F					.BYTE $0F						
+  1057 5947 0F					.BYTE $0F						
+  1057 5948 0F					.BYTE $0F						
+  1057 5949 0F					.BYTE $0F						
+  1057 594A 0F					.BYTE $0F						
+  1057 594B 0F					.BYTE $0F						
+  1057 594C 0F					.BYTE $0F						
+  1057 594D 0F					.BYTE $0F						
+  1057 594E 0F					.BYTE $0F						
+  1057 594F 0F					.BYTE $0F						
+  1057 5950 0F					.BYTE $0F						
+  1057 5951 0F					.BYTE $0F						
+  1057 5952 0F					.BYTE $0F						
+  1057 5953 0F					.BYTE $0F						
+  1057 5954 0F					.BYTE $0F						
 Source: demo.asm
-  1054 5955 4F				.BYTE $4F							
-  1054 5956 00				.BYTE <SCREEN_RAM
-  1054 5957 80				.BYTE >SCREEN_RAM
-  1054 				.endr
+  1056 5955 4F				.BYTE $4F							
+  1056 5956 00				.BYTE <SCREEN_RAM
+  1056 5957 80				.BYTE >SCREEN_RAM
+  1056 				.endr
 Source: REPT
-  1055 5958 0F					.BYTE $0F						
-  1055 5959 0F					.BYTE $0F						
-  1055 595A 0F					.BYTE $0F						
-  1055 595B 0F					.BYTE $0F						
-  1055 595C 0F					.BYTE $0F						
-  1055 595D 0F					.BYTE $0F						
-  1055 595E 0F					.BYTE $0F						
-  1055 595F 0F					.BYTE $0F						
-  1055 5960 0F					.BYTE $0F						
-  1055 5961 0F					.BYTE $0F						
-  1055 5962 0F					.BYTE $0F						
-  1055 5963 0F					.BYTE $0F						
-  1055 5964 0F					.BYTE $0F						
-  1055 5965 0F					.BYTE $0F						
+  1057 5958 0F					.BYTE $0F						
+  1057 5959 0F					.BYTE $0F						
+  1057 595A 0F					.BYTE $0F						
+  1057 595B 0F					.BYTE $0F						
+  1057 595C 0F					.BYTE $0F						
+  1057 595D 0F					.BYTE $0F						
+  1057 595E 0F					.BYTE $0F						
+  1057 595F 0F					.BYTE $0F						
+  1057 5960 0F					.BYTE $0F						
+  1057 5961 0F					.BYTE $0F						
+  1057 5962 0F					.BYTE $0F						
+  1057 5963 0F					.BYTE $0F						
+  1057 5964 0F					.BYTE $0F						
+  1057 5965 0F					.BYTE $0F						
 Source: demo.asm
-  1054 5966 4F				.BYTE $4F							
-  1054 5967 00				.BYTE <SCREEN_RAM
-  1054 5968 80				.BYTE >SCREEN_RAM
-  1054 				.endr
+  1056 5966 4F				.BYTE $4F							
+  1056 5967 00				.BYTE <SCREEN_RAM
+  1056 5968 80				.BYTE >SCREEN_RAM
+  1056 				.endr
 Source: REPT
-  1055 5969 0F					.BYTE $0F						
-  1055 596A 0F					.BYTE $0F						
-  1055 596B 0F					.BYTE $0F						
-  1055 596C 0F					.BYTE $0F						
-  1055 596D 0F					.BYTE $0F						
-  1055 596E 0F					.BYTE $0F						
-  1055 596F 0F					.BYTE $0F						
-  1055 5970 0F					.BYTE $0F						
-  1055 5971 0F					.BYTE $0F						
-  1055 5972 0F					.BYTE $0F						
-  1055 5973 0F					.BYTE $0F						
-  1055 5974 0F					.BYTE $0F						
-  1055 5975 0F					.BYTE $0F						
-  1055 5976 0F					.BYTE $0F						
+  1057 5969 0F					.BYTE $0F						
+  1057 596A 0F					.BYTE $0F						
+  1057 596B 0F					.BYTE $0F						
+  1057 596C 0F					.BYTE $0F						
+  1057 596D 0F					.BYTE $0F						
+  1057 596E 0F					.BYTE $0F						
+  1057 596F 0F					.BYTE $0F						
+  1057 5970 0F					.BYTE $0F						
+  1057 5971 0F					.BYTE $0F						
+  1057 5972 0F					.BYTE $0F						
+  1057 5973 0F					.BYTE $0F						
+  1057 5974 0F					.BYTE $0F						
+  1057 5975 0F					.BYTE $0F						
+  1057 5976 0F					.BYTE $0F						
 Source: demo.asm
-  1054 5977 4F				.BYTE $4F							
-  1054 5978 00				.BYTE <SCREEN_RAM
-  1054 5979 80				.BYTE >SCREEN_RAM
-  1054 				.endr
+  1056 5977 4F				.BYTE $4F							
+  1056 5978 00				.BYTE <SCREEN_RAM
+  1056 5979 80				.BYTE >SCREEN_RAM
+  1056 				.endr
 Source: REPT
-  1055 597A 0F					.BYTE $0F						
-  1055 597B 0F					.BYTE $0F						
-  1055 597C 0F					.BYTE $0F						
-  1055 597D 0F					.BYTE $0F						
-  1055 597E 0F					.BYTE $0F						
-  1055 597F 0F					.BYTE $0F						
-  1055 5980 0F					.BYTE $0F						
-  1055 5981 0F					.BYTE $0F						
-  1055 5982 0F					.BYTE $0F						
-  1055 5983 0F					.BYTE $0F						
-  1055 5984 0F					.BYTE $0F						
-  1055 5985 0F					.BYTE $0F						
-  1055 5986 0F					.BYTE $0F						
-  1055 5987 0F					.BYTE $0F						
+  1057 597A 0F					.BYTE $0F						
+  1057 597B 0F					.BYTE $0F						
+  1057 597C 0F					.BYTE $0F						
+  1057 597D 0F					.BYTE $0F						
+  1057 597E 0F					.BYTE $0F						
+  1057 597F 0F					.BYTE $0F						
+  1057 5980 0F					.BYTE $0F						
+  1057 5981 0F					.BYTE $0F						
+  1057 5982 0F					.BYTE $0F						
+  1057 5983 0F					.BYTE $0F						
+  1057 5984 0F					.BYTE $0F						
+  1057 5985 0F					.BYTE $0F						
+  1057 5986 0F					.BYTE $0F						
+  1057 5987 0F					.BYTE $0F						
 Source: demo.asm
-  1054 5988 4F				.BYTE $4F							
-  1054 5989 00				.BYTE <SCREEN_RAM
-  1054 598A 80				.BYTE >SCREEN_RAM
-  1054 				.endr
+  1056 5988 4F				.BYTE $4F							
+  1056 5989 00				.BYTE <SCREEN_RAM
+  1056 598A 80				.BYTE >SCREEN_RAM
+  1056 				.endr
 Source: REPT
-  1055 598B 0F					.BYTE $0F						
-  1055 598C 0F					.BYTE $0F						
-  1055 598D 0F					.BYTE $0F						
-  1055 598E 0F					.BYTE $0F						
-  1055 598F 0F					.BYTE $0F						
-  1055 5990 0F					.BYTE $0F						
-  1055 5991 0F					.BYTE $0F						
-  1055 5992 0F					.BYTE $0F						
-  1055 5993 0F					.BYTE $0F						
-  1055 5994 0F					.BYTE $0F						
-  1055 5995 0F					.BYTE $0F						
-  1055 5996 0F					.BYTE $0F						
-  1055 5997 0F					.BYTE $0F						
-  1055 5998 0F					.BYTE $0F						
+  1057 598B 0F					.BYTE $0F						
+  1057 598C 0F					.BYTE $0F						
+  1057 598D 0F					.BYTE $0F						
+  1057 598E 0F					.BYTE $0F						
+  1057 598F 0F					.BYTE $0F						
+  1057 5990 0F					.BYTE $0F						
+  1057 5991 0F					.BYTE $0F						
+  1057 5992 0F					.BYTE $0F						
+  1057 5993 0F					.BYTE $0F						
+  1057 5994 0F					.BYTE $0F						
+  1057 5995 0F					.BYTE $0F						
+  1057 5996 0F					.BYTE $0F						
+  1057 5997 0F					.BYTE $0F						
+  1057 5998 0F					.BYTE $0F						
 Source: demo.asm
-  1054 5999 4F				.BYTE $4F							
-  1054 599A 00				.BYTE <SCREEN_RAM
-  1054 599B 80				.BYTE >SCREEN_RAM
-  1054 				.endr
+  1056 5999 4F				.BYTE $4F							
+  1056 599A 00				.BYTE <SCREEN_RAM
+  1056 599B 80				.BYTE >SCREEN_RAM
+  1056 				.endr
 Source: REPT
-  1055 599C 0F					.BYTE $0F						
-  1055 599D 0F					.BYTE $0F						
-  1055 599E 0F					.BYTE $0F						
-  1055 599F 0F					.BYTE $0F						
-  1055 59A0 0F					.BYTE $0F						
-  1055 59A1 0F					.BYTE $0F						
-  1055 59A2 0F					.BYTE $0F						
-  1055 59A3 0F					.BYTE $0F						
-  1055 59A4 0F					.BYTE $0F						
-  1055 59A5 0F					.BYTE $0F						
-  1055 59A6 0F					.BYTE $0F						
-  1055 59A7 0F					.BYTE $0F						
-  1055 59A8 0F					.BYTE $0F						
-  1055 59A9 0F					.BYTE $0F						
+  1057 599C 0F					.BYTE $0F						
+  1057 599D 0F					.BYTE $0F						
+  1057 599E 0F					.BYTE $0F						
+  1057 599F 0F					.BYTE $0F						
+  1057 59A0 0F					.BYTE $0F						
+  1057 59A1 0F					.BYTE $0F						
+  1057 59A2 0F					.BYTE $0F						
+  1057 59A3 0F					.BYTE $0F						
+  1057 59A4 0F					.BYTE $0F						
+  1057 59A5 0F					.BYTE $0F						
+  1057 59A6 0F					.BYTE $0F						
+  1057 59A7 0F					.BYTE $0F						
+  1057 59A8 0F					.BYTE $0F						
+  1057 59A9 0F					.BYTE $0F						
 Source: demo.asm
-  1054 59AA 4F				.BYTE $4F							
-  1054 59AB 00				.BYTE <SCREEN_RAM
-  1054 59AC 80				.BYTE >SCREEN_RAM
-  1054 				.endr
+  1056 59AA 4F				.BYTE $4F							
+  1056 59AB 00				.BYTE <SCREEN_RAM
+  1056 59AC 80				.BYTE >SCREEN_RAM
+  1056 				.endr
 Source: REPT
-  1055 59AD 0F					.BYTE $0F						
-  1055 59AE 0F					.BYTE $0F						
-  1055 59AF 0F					.BYTE $0F						
-  1055 59B0 0F					.BYTE $0F						
-  1055 59B1 0F					.BYTE $0F						
-  1055 59B2 0F					.BYTE $0F						
-  1055 59B3 0F					.BYTE $0F						
-  1055 59B4 0F					.BYTE $0F						
-  1055 59B5 0F					.BYTE $0F						
-  1055 59B6 0F					.BYTE $0F						
-  1055 59B7 0F					.BYTE $0F						
-  1055 59B8 0F					.BYTE $0F						
-  1055 59B9 0F					.BYTE $0F						
-  1055 59BA 0F					.BYTE $0F						
+  1057 59AD 0F					.BYTE $0F						
+  1057 59AE 0F					.BYTE $0F						
+  1057 59AF 0F					.BYTE $0F						
+  1057 59B0 0F					.BYTE $0F						
+  1057 59B1 0F					.BYTE $0F						
+  1057 59B2 0F					.BYTE $0F						
+  1057 59B3 0F					.BYTE $0F						
+  1057 59B4 0F					.BYTE $0F						
+  1057 59B5 0F					.BYTE $0F						
+  1057 59B6 0F					.BYTE $0F						
+  1057 59B7 0F					.BYTE $0F						
+  1057 59B8 0F					.BYTE $0F						
+  1057 59B9 0F					.BYTE $0F						
+  1057 59BA 0F					.BYTE $0F						
 Source: demo.asm
-  1054 59BB 4F				.BYTE $4F							
-  1054 59BC 00				.BYTE <SCREEN_RAM
-  1054 59BD 80				.BYTE >SCREEN_RAM
-  1054 				.endr
+  1056 59BB 4F				.BYTE $4F							
+  1056 59BC 00				.BYTE <SCREEN_RAM
+  1056 59BD 80				.BYTE >SCREEN_RAM
+  1056 				.endr
 Source: REPT
-  1055 59BE 0F					.BYTE $0F						
-  1055 59BF 0F					.BYTE $0F						
-  1055 59C0 0F					.BYTE $0F						
-  1055 59C1 0F					.BYTE $0F						
-  1055 59C2 0F					.BYTE $0F						
-  1055 59C3 0F					.BYTE $0F						
-  1055 59C4 0F					.BYTE $0F						
-  1055 59C5 0F					.BYTE $0F						
-  1055 59C6 0F					.BYTE $0F						
-  1055 59C7 0F					.BYTE $0F						
-  1055 59C8 0F					.BYTE $0F						
-  1055 59C9 0F					.BYTE $0F						
-  1055 59CA 0F					.BYTE $0F						
-  1055 59CB 0F					.BYTE $0F						
+  1057 59BE 0F					.BYTE $0F						
+  1057 59BF 0F					.BYTE $0F						
+  1057 59C0 0F					.BYTE $0F						
+  1057 59C1 0F					.BYTE $0F						
+  1057 59C2 0F					.BYTE $0F						
+  1057 59C3 0F					.BYTE $0F						
+  1057 59C4 0F					.BYTE $0F						
+  1057 59C5 0F					.BYTE $0F						
+  1057 59C6 0F					.BYTE $0F						
+  1057 59C7 0F					.BYTE $0F						
+  1057 59C8 0F					.BYTE $0F						
+  1057 59C9 0F					.BYTE $0F						
+  1057 59CA 0F					.BYTE $0F						
+  1057 59CB 0F					.BYTE $0F						
 Source: demo.asm
-  1054 59CC 4F				.BYTE $4F							
-  1054 59CD 00				.BYTE <SCREEN_RAM
-  1054 59CE 80				.BYTE >SCREEN_RAM
-  1054 				.endr
+  1056 59CC 4F				.BYTE $4F							
+  1056 59CD 00				.BYTE <SCREEN_RAM
+  1056 59CE 80				.BYTE >SCREEN_RAM
+  1056 				.endr
 Source: REPT
-  1055 59CF 0F					.BYTE $0F						
-  1055 59D0 0F					.BYTE $0F						
-  1055 59D1 0F					.BYTE $0F						
-  1055 59D2 0F					.BYTE $0F						
-  1055 59D3 0F					.BYTE $0F						
-  1055 59D4 0F					.BYTE $0F						
-  1055 59D5 0F					.BYTE $0F						
-  1055 59D6 0F					.BYTE $0F						
-  1055 59D7 0F					.BYTE $0F						
-  1055 59D8 0F					.BYTE $0F						
-  1055 59D9 0F					.BYTE $0F						
-  1055 59DA 0F					.BYTE $0F						
-  1055 59DB 0F					.BYTE $0F						
-  1055 59DC 0F					.BYTE $0F						
+  1057 59CF 0F					.BYTE $0F						
+  1057 59D0 0F					.BYTE $0F						
+  1057 59D1 0F					.BYTE $0F						
+  1057 59D2 0F					.BYTE $0F						
+  1057 59D3 0F					.BYTE $0F						
+  1057 59D4 0F					.BYTE $0F						
+  1057 59D5 0F					.BYTE $0F						
+  1057 59D6 0F					.BYTE $0F						
+  1057 59D7 0F					.BYTE $0F						
+  1057 59D8 0F					.BYTE $0F						
+  1057 59D9 0F					.BYTE $0F						
+  1057 59DA 0F					.BYTE $0F						
+  1057 59DB 0F					.BYTE $0F						
+  1057 59DC 0F					.BYTE $0F						
 Source: demo.asm
-  1054 59DD 4F				.BYTE $4F							
-  1054 59DE 00				.BYTE <SCREEN_RAM
-  1054 59DF 80				.BYTE >SCREEN_RAM
-  1054 				.endr
+  1056 59DD 4F				.BYTE $4F							
+  1056 59DE 00				.BYTE <SCREEN_RAM
+  1056 59DF 80				.BYTE >SCREEN_RAM
+  1056 				.endr
 Source: REPT
-  1055 59E0 0F					.BYTE $0F						
-  1055 59E1 0F					.BYTE $0F						
-  1055 59E2 0F					.BYTE $0F						
-  1055 59E3 0F					.BYTE $0F						
-  1055 59E4 0F					.BYTE $0F						
-  1055 59E5 0F					.BYTE $0F						
-  1055 59E6 0F					.BYTE $0F						
-  1055 59E7 0F					.BYTE $0F						
-  1055 59E8 0F					.BYTE $0F						
-  1055 59E9 0F					.BYTE $0F						
-  1055 59EA 0F					.BYTE $0F						
-  1055 59EB 0F					.BYTE $0F						
-  1055 59EC 0F					.BYTE $0F						
-  1055 59ED 0F					.BYTE $0F						
+  1057 59E0 0F					.BYTE $0F						
+  1057 59E1 0F					.BYTE $0F						
+  1057 59E2 0F					.BYTE $0F						
+  1057 59E3 0F					.BYTE $0F						
+  1057 59E4 0F					.BYTE $0F						
+  1057 59E5 0F					.BYTE $0F						
+  1057 59E6 0F					.BYTE $0F						
+  1057 59E7 0F					.BYTE $0F						
+  1057 59E8 0F					.BYTE $0F						
+  1057 59E9 0F					.BYTE $0F						
+  1057 59EA 0F					.BYTE $0F						
+  1057 59EB 0F					.BYTE $0F						
+  1057 59EC 0F					.BYTE $0F						
+  1057 59ED 0F					.BYTE $0F						
 Source: demo.asm
-  1054 59EE 4F				.BYTE $4F							
-  1054 59EF 00				.BYTE <SCREEN_RAM
-  1054 59F0 80				.BYTE >SCREEN_RAM
-  1054 				.endr
+  1056 59EE 4F				.BYTE $4F							
+  1056 59EF 00				.BYTE <SCREEN_RAM
+  1056 59F0 80				.BYTE >SCREEN_RAM
+  1056 				.endr
 Source: REPT
-  1055 59F1 0F					.BYTE $0F						
-  1055 59F2 0F					.BYTE $0F						
-  1055 59F3 0F					.BYTE $0F						
-  1055 59F4 0F					.BYTE $0F						
-  1055 59F5 0F					.BYTE $0F						
-  1055 59F6 0F					.BYTE $0F						
-  1055 59F7 0F					.BYTE $0F						
-  1055 59F8 0F					.BYTE $0F						
-  1055 59F9 0F					.BYTE $0F						
-  1055 59FA 0F					.BYTE $0F						
-  1055 59FB 0F					.BYTE $0F						
-  1055 59FC 0F					.BYTE $0F						
-  1055 59FD 0F					.BYTE $0F						
-  1055 59FE 0F					.BYTE $0F						
+  1057 59F1 0F					.BYTE $0F						
+  1057 59F2 0F					.BYTE $0F						
+  1057 59F3 0F					.BYTE $0F						
+  1057 59F4 0F					.BYTE $0F						
+  1057 59F5 0F					.BYTE $0F						
+  1057 59F6 0F					.BYTE $0F						
+  1057 59F7 0F					.BYTE $0F						
+  1057 59F8 0F					.BYTE $0F						
+  1057 59F9 0F					.BYTE $0F						
+  1057 59FA 0F					.BYTE $0F						
+  1057 59FB 0F					.BYTE $0F						
+  1057 59FC 0F					.BYTE $0F						
+  1057 59FD 0F					.BYTE $0F						
+  1057 59FE 0F					.BYTE $0F						
 Source: demo.asm
-  1054 59FF 4F				.BYTE $4F							
-  1054 5A00 00				.BYTE <SCREEN_RAM
-  1054 5A01 80				.BYTE >SCREEN_RAM
+  1056 59FF 4F				.BYTE $4F							
+  1056 5A00 00				.BYTE <SCREEN_RAM
+  1056 5A01 80				.BYTE >SCREEN_RAM
 Source: demo.asm
-  1062 					.rept 13
-  1063 						.BYTE $0F						
-  1064 					.endr
+  1064 					.rept 13
+  1065 						.BYTE $0F						
+  1066 					.endr
 Source: REPT
-  1063 5A02 0F					.BYTE $0F						
-  1063 5A03 0F					.BYTE $0F						
-  1063 5A04 0F					.BYTE $0F						
-  1063 5A05 0F					.BYTE $0F						
-  1063 5A06 0F					.BYTE $0F						
-  1063 5A07 0F					.BYTE $0F						
-  1063 5A08 0F					.BYTE $0F						
-  1063 5A09 0F					.BYTE $0F						
-  1063 5A0A 0F					.BYTE $0F						
-  1063 5A0B 0F					.BYTE $0F						
-  1063 5A0C 0F					.BYTE $0F						
-  1063 5A0D 0F					.BYTE $0F						
-  1063 5A0E 0F					.BYTE $0F						
+  1065 5A02 0F					.BYTE $0F						
+  1065 5A03 0F					.BYTE $0F						
+  1065 5A04 0F					.BYTE $0F						
+  1065 5A05 0F					.BYTE $0F						
+  1065 5A06 0F					.BYTE $0F						
+  1065 5A07 0F					.BYTE $0F						
+  1065 5A08 0F					.BYTE $0F						
+  1065 5A09 0F					.BYTE $0F						
+  1065 5A0A 0F					.BYTE $0F						
+  1065 5A0B 0F					.BYTE $0F						
+  1065 5A0C 0F					.BYTE $0F						
+  1065 5A0D 0F					.BYTE $0F						
+  1065 5A0E 0F					.BYTE $0F						
 Source: demo.asm
-  1065 5A0F 41				.byte $41							; Jump & Wait VBL
-  1066 5A10 00				.byte <Display_List
-  1067 5A11 59				.byte >Display_List
-  1068 = 0112			Display_List_Length	equ *-Display_List
-  1069
-  1070 				; ---
-  1071 02E0-02E1> 00 33			run main
+  1067 5A0F 41				.byte $41							; Jump & Wait VBL
+  1068 5A10 00				.byte <Display_List
+  1069 5A11 59				.byte >Display_List
+  1070 = 0112			Display_List_Length	equ *-Display_List
+  1071
+  1072 				; ---
+  1073 02E0-02E1> 00 33			run main
