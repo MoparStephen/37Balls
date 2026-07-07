@@ -775,6 +775,10 @@ Setup_Cmap1_L1
 	bne Setup_Cmap1_L1					; Wait for blitter to finish
 	lda #$01
 	sta VBXE_BLITTER_START				; Start the blit
+Setup_Cmap1_L2
+	lda VBXE_BLITTER_BUSY
+	cmp #$00
+	bne Setup_Cmap1_L2					; Wait for blitter to finish before returning
 	rts
 
 ;-----------------------------------------------------------------------------
@@ -794,6 +798,10 @@ Setup_Cmap2_L1
 	bne Setup_Cmap2_L1					; Wait for blitter to finish
 	lda #$01
 	sta VBXE_BLITTER_START				; Start the blit
+Setup_Cmap2_L2
+	lda VBXE_BLITTER_BUSY
+	cmp #$00
+	bne Setup_Cmap2_L2					; Wait for blitter to finish before returning
 	rts
 
 ;-----------------------------------------------------------------------------
