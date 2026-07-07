@@ -619,7 +619,8 @@ Load_Background_Message
 
 	org SCREEN_RAM						; Load data directly into CPU RAM
 FujiGraphics_Mono
-	ins 'Assets\Fuji_Mono.raw'			; $520 bytes
+	; ins 'Assets\Fuji_Mono.raw'			; $520 bytes
+	ins 'Assets\Solid.raw'				; $520 bytes
 
 ; Step $0A - Display final message and wait for key
 	org LOAD_ADDRESS + $300

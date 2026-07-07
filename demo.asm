@@ -66,6 +66,7 @@
 .var SDLSTH_OLD			.byte = $486	; Save the Display List Pointer
 .var Video_Flag			.byte = $487	; PAL = 0, NTSC = 1
 .var Colour_Map_On		.byte = $488	; Non-zero when XDL_Attribute (Colour Map) is the active XDL
+.var Colour_Map_Val		.byte = $489	; Togggles between 0 and 1 to set PFPAL and OVPAL values
 
 ;-----------------------------------------------------------------------------
 ; Rasta Music Tracker Stuff
@@ -128,10 +129,10 @@ Bobs	equ	$5500
 .def	Blt_Ctrl						= $14
 
 ; Title Screen
-.def	V_0								= $11	; 1 (Screen code used for Version in loading screen)
-.def	V_1								= $10	; 0 (Screen code used for Version in loading screen)
-.def	V_2								= $13	; 3 (Screen code used for Version in loading screen)
-.def	V_3								= $00	;   (Screen code used for Version in loading screen)
+.def	V_0								= $00	;   (Screen code used for Version in loading screen)
+.def	V_1								= $24	; D (Screen code used for Version in loading screen)
+.def	V_2								= $22	; B (Screen code used for Version in loading screen)
+.def	V_3								= $27	; G (Screen code used for Version in loading screen)
 
 ;-----------------------------------------------------------------------------
 ; VBXE Helpers
@@ -222,6 +223,7 @@ main
 	sta Colour_Map_On					; XDL_Attribute (Colour Map on) is the active XDL
 
 	lda #$00
+	sta Colour_Map_Val					; Initialize to 0
 	sta COLOR2							; Set Playfield Black
 	jsr Setup_DisplayList
 	jsr Wait_For_Sync
@@ -636,7 +638,6 @@ Flip_Screen
 	sta VBXE_WINDOW+$405				; XDL_Attribute Adr2
 	sta VBXE_WINDOW+$41A				; XDL_Normal Adr2 - kept in sync so Toggle_Colour_Map can't desync buffers
 	rts
-;--------------------------------------------------------
 
 ;-----------------------------------------------------------------------------
 ; Toggle_Colour_Map - switches the active XDL between XDL_Attribute and XDL_Normal
@@ -648,6 +649,33 @@ Toggle_Colour_Map
 	rts
 Toggle_Colour_Map_Off
 	jsr Disable_Colour_Map
+	rts
+
+;-----------------------------------------------------------------------------
+; Toggle_Colour_Map - switches the active XDL between XDL_Attribute and XDL_Normal
+;-----------------------------------------------------------------------------
+Toggle_Colour_Map_Values
+	lda #$00 | MEMAC_GLOBAL_ENABLE		; Bank $00 VBXE Window Enabled
+	sta VBXE_MA_BSEL
+
+	lda Colour_Map_Val
+	eor #$01
+	sta Colour_Map_Val
+	beq Toggle_Colour_Map_Values_Set1
+
+	lda #$00							; Set PFPAL and OVPAL to 0
+	sta VBXE_WINDOW + BLT_SETUP_CMAP_1-BLT_BALL + $510
+	jsr Setup_Cmap1
+
+	rts
+Toggle_Colour_Map_Values_Set1
+	lda #$50							; Set PFPAL and OVPAL to 1
+	sta VBXE_WINDOW + BLT_SETUP_CMAP_1-BLT_BALL + $510
+	jsr Setup_Cmap1
+
+	lda #MEMAC_GLOBAL_DISABLE			; USE CPU address space
+	sta VBXE_MA_BSEL
+
 	rts
 
 ;-----------------------------------------------------------------------------
@@ -725,12 +753,18 @@ Handle_Keys
 	beq Exit_Long
 	cmp #$32							; 0
 	beq Handle_0
+	cmp #$1F							; 1
+	beq Handle_1
 Handle_Keys_Done						; No more keys to test
 	jmp Read_Key_Done
 
 Handle_0
 	jsr Toggle_Colour_Map				; Toggle the Colour Map (Attribute XDL) on/off
 	jmp Read_Key_Done
+
+Handle_1
+	jsr Toggle_Colour_Map_Values		; Toggle the Colour Map Byte 4 from $00 to $50
+	jmp Read_Key_Done					; That is, set PFPAL and OVPAL to 0 or 1
 
 Read_Key_Done
 	lda #$FF
@@ -916,6 +950,16 @@ no_carry
 	inx
 	cpx #$10							; 16 objects
 	bne obj_loop
+
+; ; For debugging, skip all the 0 entries
+; 	ldx #$EF
+; Generate_Colour_Map_L1
+; 	txa									; Set $600-$6EF equal to
+; 	sta $0600,x							; $00-$EF
+; 	dex
+; 	bne Generate_Colour_Map_L1
+; 	lda #$00
+; 	sta $0600							; Pickup the final save
 
 	jsr Setup_Cmap1						; Setup the Palette & Priority bits
 	jsr Setup_Colours

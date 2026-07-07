@@ -49,6 +49,7 @@ BLT_CLEAR
 	dta $00								; Control (Mode 0 with NEXT bit Cleared)
 
 ; Fill the ColourMap area ($60000-$62580, 9600 bytes) with $50 every 4 bytes
+; XDLC_MAPPAR Byte 4
 ; This sets up the Palette & Priority bytes for the entire Colour Map
 ; 10 cells/line (32-pixel cells) x 4 bytes/cell = $28 bytes/line, 240 lines
 BLT_SETUP_CMAP_1
@@ -61,7 +62,7 @@ BLT_SETUP_CMAP_1
 	dta $09,$00							; Width (9 = 10 cells/line, count-1)
 	dta $EF								; Height ($F0)
 	dta $00								; And mask
-	dta $50								; Xor mask
+	dta $50								; Xor mask ($50 = PF & OVL Palette 1)
 	dta $00								; Collision and mask
 	dta $00								; Zoom
 	dta $00								; Pattern feature
