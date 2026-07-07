@@ -230,12 +230,6 @@ main
 
 	lda #%00000011						; XDL,XCOLOR Enabled and transparent color index 0
 	sta VBXE_VIDEO_CONTROL
-	
-	jsr Generate_Colour_Map				; So we don't have a boring monochrome background
-
-Hang
-	jsr Wait_For_Sync
-	jmp Hang
 
 ; Pre-fill both screen buffers with the background before animation starts
 	jsr Flip_Screen
@@ -669,13 +663,13 @@ Toggle_Colour_Map_Values
 	sta Colour_Map_Val
 	beq Toggle_Colour_Map_Values_Set1
 
-	lda #$03							; Set PFPAL and OVPAL to 0
+	lda #$00							; Set PFPAL and OVPAL to 0
 	sta VBXE_WINDOW + BLT_SETUP_CMAP_1-BLT_BALL + $510
 	jsr Setup_Cmap1
 
 	rts
 Toggle_Colour_Map_Values_Set1
-	lda #$53							; Set PFPAL and OVPAL to 1
+	lda #$50							; Set PFPAL and OVPAL to 1
 	sta VBXE_WINDOW + BLT_SETUP_CMAP_1-BLT_BALL + $510
 	jsr Setup_Cmap1
 
