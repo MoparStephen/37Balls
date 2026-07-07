@@ -102,7 +102,7 @@ Bobs	equ	$5500
 
 ; Temp debug stuff
 .def	DBG_SINGLE_STEP					= $00	; 00 = False else true
-.def	MAX_SPRITES_PAL					= $25
+.def	MAX_SPRITES_PAL					= $24
 .def	MAX_SPRITES_NTSC				= $18
 
 ; Sprite struct field byte offsets for (Ptr_Lo),y indirect access
@@ -129,7 +129,7 @@ Bobs	equ	$5500
 .def	Blt_Ctrl						= $14
 
 ; Title Screen
-.def	V_0								= $01	;   (Screen code used for Version in loading screen)
+.def	V_0								= $02	;   (Screen code used for Version in loading screen)
 .def	V_1								= $24	; D (Screen code used for Version in loading screen)
 .def	V_2								= $22	; B (Screen code used for Version in loading screen)
 .def	V_3								= $27	; G (Screen code used for Version in loading screen)
@@ -230,6 +230,12 @@ main
 
 	lda #%00000011						; XDL,XCOLOR Enabled and transparent color index 0
 	sta VBXE_VIDEO_CONTROL
+	
+	jsr Generate_Colour_Map				; So we don't have a boring monochrome background
+
+Hang
+	jsr Wait_For_Sync
+	jmp Hang
 
 ; Pre-fill both screen buffers with the background before animation starts
 	jsr Flip_Screen
@@ -663,13 +669,13 @@ Toggle_Colour_Map_Values
 	sta Colour_Map_Val
 	beq Toggle_Colour_Map_Values_Set1
 
-	lda #$00							; Set PFPAL and OVPAL to 0
+	lda #$03							; Set PFPAL and OVPAL to 0
 	sta VBXE_WINDOW + BLT_SETUP_CMAP_1-BLT_BALL + $510
 	jsr Setup_Cmap1
 
 	rts
 Toggle_Colour_Map_Values_Set1
-	lda #$50							; Set PFPAL and OVPAL to 1
+	lda #$53							; Set PFPAL and OVPAL to 1
 	sta VBXE_WINDOW + BLT_SETUP_CMAP_1-BLT_BALL + $510
 	jsr Setup_Cmap1
 
