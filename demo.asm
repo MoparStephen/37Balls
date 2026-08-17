@@ -92,7 +92,9 @@ Bobs	equ	$5500
 ;-----------------------------------------------------------------------------
 ; Defines go here
 ;-----------------------------------------------------------------------------
-.def	__VBXE_AUTO__
+; __VBXE_AUTO__ must NOT be defined: this code reaches the VBXE with plain
+; absolute lda/sta, so VBXE_BASE has to be fixed at assembly time.  Defining it
+; sets VBXE_BASE = $0000 and every register access lands in zero page.
 .def	VBXE_WINDOW						= $2000
 .def	VBXE_WINDOW_SIZE_4k				= $1000
 .def	VBXE_WINDOW_SIZE_8k				= $2000
@@ -130,7 +132,7 @@ Bobs	equ	$5500
 ; Title Screen
 .def	V_0								= $11	; 1 (Screen code used for Version in loading screen)
 .def	V_1								= $10	; 0 (Screen code used for Version in loading screen)
-.def	V_2								= $13	; 3 (Screen code used for Version in loading screen)
+.def	V_2								= $14	; 4 (Screen code used for Version in loading screen)
 .def	V_3								= $00	;   (Screen code used for Version in loading screen)
 
 ;-----------------------------------------------------------------------------
