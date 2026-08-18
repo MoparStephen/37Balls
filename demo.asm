@@ -132,7 +132,7 @@ Bobs	equ	$5500
 ; Title Screen
 .def	V_0								= $11	; 1 (Screen code used for Version in loading screen)
 .def	V_1								= $10	; 0 (Screen code used for Version in loading screen)
-.def	V_2								= $14	; 4 (Screen code used for Version in loading screen)
+.def	V_2								= $14	; 5 (Screen code used for Version in loading screen)
 .def	V_3								= $00	;   (Screen code used for Version in loading screen)
 
 ;-----------------------------------------------------------------------------
@@ -230,6 +230,9 @@ main
 
 	lda #%00000011						; XDL,XCOLOR Enabled and transparent color index 0
 	sta VBXE_VIDEO_CONTROL
+
+	lda #$FF							; Must set priority when using Attribute Map
+	sta VBXE_P0							; because VBXE defaults PO-P$ to #$00 on power-up
 
 ; Pre-fill both screen buffers with the background before animation starts
 	jsr Flip_Screen
