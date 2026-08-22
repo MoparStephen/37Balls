@@ -154,7 +154,7 @@ Bob_Delta_Y			equ	Bobs+[$0A*Bob_Stride]	; $5780  Y velocity integer
 .def	V_0								= $11	; 1 (Screen code used for Version in loading screen)
 .def	V_1								= $10	; 0 (Screen code used for Version in loading screen)
 .def	V_2								= $16	; 6 (Screen code used for Version in loading screen)
-.def	V_3								= $00	;    (Screen code used for Version in loading screen)
+.def	V_3								= $61	; a  (Screen code used for Version in loading screen)
 
 ;-----------------------------------------------------------------------------
 ; VBXE Helpers
@@ -515,7 +515,8 @@ Spr_Loop_Done
 
 ;-----------------------------------------------------------------------------
 ; Init_Objects - called once at startup
-; Starting positions read from Init_Pos_X_Hi/Lo and Init_Pos_Y tables.
+; Starting positions read from Init_Pos_X_Lo and Init_Pos_Y tables (there is no
+; X_Hi table - the startup image fits in a byte, so Bob_X_Pos_Hi starts at 0).
 ; Velocities read from Init_Delta_X/Y tables (unchanged).
 ;-----------------------------------------------------------------------------
 Init_Objects
@@ -907,13 +908,13 @@ Init_Delta_Y_Frac
 ; tools/gen_layout.py from Assets/layout48.txt - edit the ASCII grid there and
 ; re-run the tool rather than hand-editing these two tables.
 Init_Pos_X_Lo
-	dta $5A,$6C,$B4,$C6,$D8,$EA,$5A,$6C,$A2,$FC,$48,$5A,$6C,$A2,$FC,$36	; Objs $00-$0F
-	dta $5A,$6C,$A2,$FC,$24,$5A,$6C,$B4,$C6,$D8,$EA,$24,$36,$48,$5A,$6C	; Objs $10-$1F
-	dta $A2,$FC,$5A,$6C,$A2,$FC,$5A,$6C,$A2,$FC,$5A,$6C,$B4,$C6,$D8,$EA	; Objs $20-$2F
+	dta $36,$48,$36,$48,$24,$36,$48,$90,$A2,$B4,$C6,$12,$36,$48,$7E,$D8	; Objs $00-$0F
+	dta $00,$36,$48,$7E,$D8,$00,$12,$24,$36,$48,$7E,$D8,$36,$48,$90,$A2	; Objs $10-$1F
+	dta $B4,$C6,$36,$48,$7E,$D8,$36,$48,$7E,$D8,$7E,$D8,$90,$A2,$B4,$C6	; Objs $20-$2F
 Init_Pos_Y
-	dta $34,$34,$34,$34,$34,$34,$41,$41,$41,$41,$4E,$4E,$4E,$4E,$4E,$5B	; Objs $00-$0F
-	dta $5B,$5B,$5B,$5B,$68,$68,$68,$68,$68,$68,$68,$75,$75,$75,$75,$75	; Objs $10-$1F
-	dta $75,$75,$82,$82,$82,$82,$8F,$8F,$8F,$8F,$9C,$9C,$9C,$9C,$9C,$9C	; Objs $20-$2F
+	dta $00,$00,$0D,$0D,$1A,$1A,$1A,$1A,$1A,$1A,$1A,$27,$27,$27,$27,$27	; Objs $00-$0F
+	dta $34,$34,$34,$34,$34,$41,$41,$41,$41,$41,$41,$41,$4E,$4E,$4E,$4E	; Objs $10-$1F
+	dta $4E,$4E,$5B,$5B,$5B,$5B,$68,$68,$68,$68,$75,$75,$82,$82,$82,$82	; Objs $20-$2F
 
 	org $5900							; Ensure the Display_List is page aligned
 Display_List							; 16 * 15 = 240 lines

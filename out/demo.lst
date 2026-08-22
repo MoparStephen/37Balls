@@ -4161,13 +4161,13 @@ Source: bcbs.asm
    907 				; tools/gen_layout.py from Assets/layout48.txt - edit the ASCII grid there and
    908 				; re-run the tool rather than hand-editing these two tables.
    909 3781			Init_Pos_X_Lo
-   910 3781 5A 6C B4 C6 D8 EA + 	dta $5A,$6C,$B4,$C6,$D8,$EA,$5A,$6C,$A2,$FC,$48,$5A,$6C,$A2,$FC,$36	; Objs $00-$0F
-   911 3791 5A 6C A2 FC 24 5A + 	dta $5A,$6C,$A2,$FC,$24,$5A,$6C,$B4,$C6,$D8,$EA,$24,$36,$48,$5A,$6C	; Objs $10-$1F
-   912 37A1 A2 FC 5A 6C A2 FC + 	dta $A2,$FC,$5A,$6C,$A2,$FC,$5A,$6C,$A2,$FC,$5A,$6C,$B4,$C6,$D8,$EA	; Objs $20-$2F
+   910 3781 5A 6C 5A 6C 48 5A + 	dta $5A,$6C,$5A,$6C,$48,$5A,$6C,$B4,$C6,$D8,$EA,$36,$5A,$6C,$A2,$FC	; Objs $00-$0F
+   911 3791 24 5A 6C A2 FC 24 + 	dta $24,$5A,$6C,$A2,$FC,$24,$36,$48,$5A,$6C,$A2,$FC,$5A,$6C,$B4,$C6	; Objs $10-$1F
+   912 37A1 D8 EA 5A 6C A2 FC + 	dta $D8,$EA,$5A,$6C,$A2,$FC,$5A,$6C,$A2,$FC,$A2,$FC,$B4,$C6,$D8,$EA	; Objs $20-$2F
    913 37B1			Init_Pos_Y
-   914 37B1 34 34 34 34 34 34 + 	dta $34,$34,$34,$34,$34,$34,$41,$41,$41,$41,$4E,$4E,$4E,$4E,$4E,$5B	; Objs $00-$0F
-   915 37C1 5B 5B 5B 5B 68 68 + 	dta $5B,$5B,$5B,$5B,$68,$68,$68,$68,$68,$68,$68,$75,$75,$75,$75,$75	; Objs $10-$1F
-   916 37D1 75 75 82 82 82 82 + 	dta $75,$75,$82,$82,$82,$82,$8F,$8F,$8F,$8F,$9C,$9C,$9C,$9C,$9C,$9C	; Objs $20-$2F
+   914 37B1 27 27 34 34 41 41 + 	dta $27,$27,$34,$34,$41,$41,$41,$41,$41,$41,$41,$4E,$4E,$4E,$4E,$4E	; Objs $00-$0F
+   915 37C1 5B 5B 5B 5B 5B 68 + 	dta $5B,$5B,$5B,$5B,$5B,$68,$68,$68,$68,$68,$68,$68,$75,$75,$75,$75	; Objs $10-$1F
+   916 37D1 75 75 82 82 82 82 + 	dta $75,$75,$82,$82,$82,$82,$8F,$8F,$8F,$8F,$9C,$9C,$A9,$A9,$A9,$A9	; Objs $20-$2F
    917
    918 					org $5900							; Ensure the Display_List is page aligned
    919 5900			Display_List							; 16 * 15 = 240 lines
