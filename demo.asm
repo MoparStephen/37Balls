@@ -20,21 +20,23 @@
     icl 'equates.asm'
 
 ;-----------------------------------------------------------------------------
-; Structure Declarations
+; Ball Data Layout (struct-of-arrays)
 ;-----------------------------------------------------------------------------
-.struct Sprite
-	X_Pos_Frac .byte					; Horizontal position (Fractional) sprite1
-	X_Pos_Lo .byte						; Horizontal position sprite1
-	X_Pos_Hi .byte						; Horizontal position sprite1 (Valid Values 0-319)
-	Y_Pos_Frac .byte					; Vertical position (Fractional) sprite1
-	Y_Pos .byte							; Vertical position sprite1 (valid values 0-239)
-	Delta_X_Sign .byte					; X-Delta Sign (toggles betwen $00:Right, $FF:Left)
-	Delta_X_Frac .byte					; Fractional X-Delta
-	Delta_X .byte						; X-Delta (Valid Values) (+ = move right, - = move left)
-	Delta_Y_Sign .byte					; Y-Delta Sign (toggles betwen $00:Down, $FF:Up)
-	Delta_Y_Frac .byte					; Fractional Y-Delta
-	Delta_Y .byte						; Y-Delta (Valid Values) (+ = move down, - = move up)
-.ends
+; Each field is its own flat array indexed by the ball number in X, so every
+; access is a single lda/sta abs,x - no (Ptr_Lo),y indirection, no per-ball
+; pointer arithmetic, and Y is left free.  Addresses are set up below at Bobs.
+;
+;	X_Pos_Frac							; Horizontal position (Fractional)
+;	X_Pos_Lo							; Horizontal position
+;	X_Pos_Hi							; Horizontal position (Valid Values 0-319)
+;	Y_Pos_Frac							; Vertical position (Fractional)
+;	Y_Pos								; Vertical position (valid values 0-239)
+;	Delta_X_Sign						; X-Delta Sign (toggles betwen $00:Right, $FF:Left)
+;	Delta_X_Frac						; Fractional X-Delta
+;	Delta_X								; X-Delta (Valid Values) (+ = move right, - = move left)
+;	Delta_Y_Sign						; Y-Delta Sign (toggles betwen $00:Down, $FF:Up)
+;	Delta_Y_Frac						; Fractional Y-Delta
+;	Delta_Y								; Y-Delta (Valid Values) (+ = move down, - = move up)
 
 ;-----------------------------------------------------------------------------
 ; Variables go here
@@ -66,6 +68,10 @@
 .var SDLSTH_OLD			.byte = $486	; Save the Display List Pointer
 .var Video_Flag			.byte = $487	; PAL = 0, NTSC = 1
 .var Colour_Map_On		.byte = $488	; Non-zero when XDL_Attribute (Colour Map) is the active XDL
+.var COLOR4_OLD			.byte = $489	; Save COLOR4 (border)
+.var Frame_Mark			.byte = $48A	; Last RTCLOK+2 sample
+.var Frame_Late			.byte = $48B	; Non-zero if the last frame overran
+.var Frame_Drops		.byte = $48C	; Frames dropped since reset (saturates at $FF)
 
 ;-----------------------------------------------------------------------------
 ; Rasta Music Tracker Stuff
@@ -86,8 +92,25 @@ module									; Include music RMT module
 	rmt_relocator 'Assets\Atari_Led.rmt' module
 	.endp
 
-; Sprite struct array in free RAM $5500-$57BF (37 sprites * 11 bytes = 407 bytes)
-Bobs	equ	$5500
+; Ball arrays (struct-of-arrays), indexed by the ball number in X.
+; MAX_BALLS ($40) slots per field.  The base is page-aligned and the stride
+; divides 256, so no array can ever straddle a page boundary - lda abs,x on
+; any field costs 4 cycles for every ball.  Occupies $5500-$57BF.
+.def	MAX_BALLS						= $40	; Array capacity / live ball-count cap
+.def	Bob_Stride						= $40	; Bytes per field array
+Bobs	equ	$5500						; Base of the ball field arrays
+
+Bob_X_Pos_Frac		equ	Bobs+[$00*Bob_Stride]	; $5500  X sub-pixel fraction
+Bob_X_Pos_Lo		equ	Bobs+[$01*Bob_Stride]	; $5540  X low byte
+Bob_X_Pos_Hi		equ	Bobs+[$02*Bob_Stride]	; $5580  X high byte (X valid 0-319)
+Bob_Y_Pos_Frac		equ	Bobs+[$03*Bob_Stride]	; $55C0  Y sub-pixel fraction
+Bob_Y_Pos			equ	Bobs+[$04*Bob_Stride]	; $5600  Y (valid 0-239, no hi byte)
+Bob_Delta_X_Sign	equ	Bobs+[$05*Bob_Stride]	; $5640  $00 = right, $FF = left
+Bob_Delta_X_Frac	equ	Bobs+[$06*Bob_Stride]	; $5680  X velocity fraction
+Bob_Delta_X			equ	Bobs+[$07*Bob_Stride]	; $56C0  X velocity integer
+Bob_Delta_Y_Sign	equ	Bobs+[$08*Bob_Stride]	; $5700  $00 = down, $FF = up
+Bob_Delta_Y_Frac	equ	Bobs+[$09*Bob_Stride]	; $5740  Y velocity fraction
+Bob_Delta_Y			equ	Bobs+[$0A*Bob_Stride]	; $5780  Y velocity integer
 
 ;-----------------------------------------------------------------------------
 ; Defines go here
@@ -103,22 +126,30 @@ Bobs	equ	$5500
 
 ; Temp debug stuff
 .def	DBG_SINGLE_STEP					= $00	; 00 = False else true
-.def	MAX_SPRITES_PAL					= $25
+.def	DBG_FRAME_CHECK					= $01	; 00 = False else true.  Mutually exclusive
+											; with DBG_SINGLE_STEP - the space-wait makes
+											; every frame read as late
+.def	DBG_TINY_BALL					= $00	; 01 = shrink the ball blit to 8x8.  Unloads the
+											; blitter 16x while leaving every CPU instruction
+											; in Spr_Loop byte-identical, so the ball ceiling
+											; then tells you which resource is the wall.
+											; DIAGNOSTIC ONLY - delete once it has answered.
+.def	MAX_SPRITES_PAL					= $30	; (Previously was $25!)
 .def	MAX_SPRITES_NTSC				= $18
 
-; Sprite struct field byte offsets for (Ptr_Lo),y indirect access
-.def	Spr_X_Pos_Frac					= $00
-.def	Spr_X_Pos_Lo					= $01
-.def	Spr_X_Pos_Hi					= $02
-.def	Spr_Y_Pos_Frac					= $03
-.def	Spr_Y_Pos						= $04
-.def	Spr_Delta_X_Sign				= $05
-.def	Spr_Delta_X_Frac				= $06
-.def	Spr_Delta_X						= $07
-.def	Spr_Delta_Y_Sign				= $08
-.def	Spr_Delta_Y_Frac				= $09
-.def	Spr_Delta_Y						= $0A
-.def	Sprite_Size						= $0B
+; Background clear height, and the ball Y clamp derived from it.
+; The clear is the single biggest consumer of blitter bandwidth - 320x240 is
+; 76,800 of the ~166,000 cycles the blitter gets in a PAL frame once overlay
+; and attribute-map DMA are paid.  Trimming rows off the bottom is the only
+; lever left that does not touch the 32x32 ball blit.
+;
+; BLT_BAKGRND has zoom 8x8, so its height byte moves in 8-pixel steps:
+;   $1D = 240 rows (full screen)   $1C = 232   $1B = 224   $1A = 216
+; Y_POS_MAX is derived so the clamp always matches the cleared area.  If these
+; two ever disagree the balls leave permanent trails in the uncleared strip.
+.def	CLEAR_H							= $1C	; Clear height byte -> 232 rows
+.def	CLEAR_ROWS						= [CLEAR_H+1]*8
+.def	Y_POS_MAX						= CLEAR_ROWS-32	; Lowest legal ball Y
 
 ; BCB field byte offsets
 .def	Src_Adr0						= $00
@@ -132,8 +163,8 @@ Bobs	equ	$5500
 ; Title Screen
 .def	V_0								= $11	; 1 (Screen code used for Version in loading screen)
 .def	V_1								= $10	; 0 (Screen code used for Version in loading screen)
-.def	V_2								= $14	; 5 (Screen code used for Version in loading screen)
-.def	V_3								= $00	;   (Screen code used for Version in loading screen)
+.def	V_2								= $15	; 5 (Screen code used for Version in loading screen)
+.def	V_3								= $61	; a  (Screen code used for Version in loading screen)
 
 ;-----------------------------------------------------------------------------
 ; VBXE Helpers
@@ -172,6 +203,9 @@ Cleanup_Exit
 
 	lda COLOR2_OLD
 	sta COLOR2							; Restore COLOR2
+
+	lda COLOR4_OLD
+	sta COLOR4							; Restore COLOR4 (border)
 
 	lda SDLSTL_OLD
 	sta SDLSTL							; Restore SDLSTL
@@ -222,6 +256,9 @@ main
 
 	lda #$01
 	sta Colour_Map_On					; XDL_Attribute (Colour Map on) is the active XDL
+
+	lda COLOR4
+	sta COLOR4_OLD						; Save the border - the frame check writes it
 
 	lda #$00
 	sta COLOR2							; Set Playfield Black
@@ -282,6 +319,15 @@ Set_Do_Motion
 	lda #$01
 	sta Do_Motion						; Allow positions to update when blitting
 
+.if DBG_FRAME_CHECK
+	lda RTCLOK+2
+	sta Frame_Mark						; Seed the frame-slip check
+	lda #$00
+	sta Frame_Drops
+	sta Frame_Late
+	sta COLOR4							; Border black = on time, never dropped
+.endif
+
 Main_Loop
 	lda #$00
 	sta ATRACT							; Disable Screensaver
@@ -295,6 +341,43 @@ Main_Loop
 ; Work done -wait for vertical synch before looping again
 W_Synch_0
 	jsr Wait_For_Sync					; Wait for VSYNC, Q quits
+
+.if DBG_FRAME_CHECK
+; Frame-slip check.  Wait_For_Sync syncs on VCOUNT bit 7 (scanline 256) and so
+; cannot see an overrun - it just waits for the next scanline 256 and silently
+; loses a frame.  RTCLOK+2 is the OS VBI's own 50Hz tick and is the ground truth.
+; The VBI fires around scanline 249, before our sync point, so this sample is
+; race-free.  Delta of 1 = on time, N = we dropped N-1 frames.
+	lda RTCLOK+2
+	tay									; Keep the raw sample
+	sec
+	sbc Frame_Mark						; Frames elapsed since the previous sync
+	sty Frame_Mark						; Re-mark for next time
+	cmp #$02
+	bcc Frame_On_Time					; Delta 1 - we made it
+	sta Frame_Late
+	lda Frame_Drops
+	cmp #$FF
+	beq Frame_Red						; Saturate, do not wrap
+	inc Frame_Drops
+Frame_Red
+	lda #$32							; Red - this frame overran
+	sta COLOR4
+	jmp Frame_Show
+Frame_On_Time
+	lda #$00
+	sta Frame_Late
+	lda Frame_Drops
+	beq Frame_Black
+	lda #$1C							; Yellow - on time now, but dropped earlier
+	sta COLOR4
+	jmp Frame_Show
+Frame_Black
+	lda #$00							; Black - clean since the last reset
+	sta COLOR4
+Frame_Show
+.endif
+
 	lda #$FF
 	sta CH
 	lda #DBG_SINGLE_STEP
@@ -327,57 +410,52 @@ Exit
 ;-----------------------------------------------------------------------------
 ;-----------------------------------------------------------------------------
 ; Reverse_X - 2's complement negate of Delta_X_Sign:Delta_X:Delta_X_Frac
-; Ptr_Lo/Ptr_Hi must point to the current Sprite struct
+; X = ball index
 ;-----------------------------------------------------------------------------
 Reverse_X
 	sec
-	ldy #Spr_Delta_X_Frac
 	lda #$00
-	sbc (Ptr_Lo),y
-	sta (Ptr_Lo),y
-	ldy #Spr_Delta_X
+	sbc Bob_Delta_X_Frac,x
+	sta Bob_Delta_X_Frac,x
 	lda #$00
-	sbc (Ptr_Lo),y
-	sta (Ptr_Lo),y
-	ldy #Spr_Delta_X_Sign
-	lda (Ptr_Lo),y
+	sbc Bob_Delta_X,x
+	sta Bob_Delta_X,x
+	lda Bob_Delta_X_Sign,x
 	eor #$FF
-	sta (Ptr_Lo),y
+	sta Bob_Delta_X_Sign,x
 	rts
 
 ;-----------------------------------------------------------------------------
 ; Reverse_Y - 2's complement negate of Delta_Y_Sign:Delta_Y:Delta_Y_Frac
+; X = ball index
 ;-----------------------------------------------------------------------------
 Reverse_Y
 	sec
-	ldy #Spr_Delta_Y_Frac
 	lda #$00
-	sbc (Ptr_Lo),y
-	sta (Ptr_Lo),y
-	ldy #Spr_Delta_Y
+	sbc Bob_Delta_Y_Frac,x
+	sta Bob_Delta_Y_Frac,x
 	lda #$00
-	sbc (Ptr_Lo),y
-	sta (Ptr_Lo),y
-	ldy #Spr_Delta_Y_Sign
-	lda (Ptr_Lo),y
+	sbc Bob_Delta_Y,x
+	sta Bob_Delta_Y,x
+	lda Bob_Delta_Y_Sign,x
 	eor #$FF
-	sta (Ptr_Lo),y
+	sta Bob_Delta_Y_Sign,x
 	rts
 
 ;-----------------------------------------------------------------------------
 ; Set_Positions
 ; For each sprite: update position with sub-pixel accuracy, bounce off walls,
 ; compute VBXE address via Calculate_200, write to BLT_BALL BCB, fire blitter.
-; X = object counter,  Ptr_Lo/Ptr_Hi = pointer to current Sprite struct
+; X = ball index, used to index every Bob_* field array directly
 ;-----------------------------------------------------------------------------
 Set_Positions
 	lda #$80
 	sta VBXE_MA_BSEL					; Enable VBXE window for BCB writes
 
-	lda #<Bobs
-	sta Ptr_Lo
-	lda #>Bobs
-	sta Ptr_Hi
+	lda VBXE_WINDOW+$405				; XDL Adr2 (byte 5 of XDL at VBXE_WINDOW+$400)
+	eor #$06							; Flip between $02 ($020000) and $04 ($040000)
+	sta Reg7							; Backbuffer Adr2 - constant for the whole frame
+
 	ldx #$00
 
 Spr_Loop
@@ -388,137 +466,93 @@ Spr_Loop
 ;--- X motion ----------------------------------------------------------------
 Set_X
 	clc
-	ldy #Spr_X_Pos_Frac
-	lda (Ptr_Lo),y
-	ldy #Spr_Delta_X_Frac
-	adc (Ptr_Lo),y
-	ldy #Spr_X_Pos_Frac
-	sta (Ptr_Lo),y
+	lda Bob_X_Pos_Frac,x
+	adc Bob_Delta_X_Frac,x
+	sta Bob_X_Pos_Frac,x
 
-	ldy #Spr_X_Pos_Lo
-	lda (Ptr_Lo),y
-	ldy #Spr_Delta_X
-	adc (Ptr_Lo),y
-	ldy #Spr_X_Pos_Lo
-	sta (Ptr_Lo),y
+	lda Bob_X_Pos_Lo,x
+	adc Bob_Delta_X,x
+	sta Bob_X_Pos_Lo,x
 
-	ldy #Spr_X_Pos_Hi
-	lda (Ptr_Lo),y
-	ldy #Spr_Delta_X_Sign
-	adc (Ptr_Lo),y						; $00 = right, $FF = left
-	ldy #Spr_X_Pos_Hi
-	sta (Ptr_Lo),y
-	lda (Ptr_Lo),y						; Reload to restore N flag (sta does not set N)
+	lda Bob_X_Pos_Hi,x
+	adc Bob_Delta_X_Sign,x				; $00 = right, $FF = left
+	sta Bob_X_Pos_Hi,x					; sta does not touch flags, so the adc's N survives
 
 ; Left wall: X_Pos_Hi >= $80 means position underflowed past 0
 	bpl X_Check_Right
 	lda #$00
-	ldy #Spr_X_Pos_Hi
-	sta (Ptr_Lo),y
-	ldy #Spr_X_Pos_Lo
-	sta (Ptr_Lo),y
-	ldy #Spr_X_Pos_Frac
-	sta (Ptr_Lo),y
-	ldy #Spr_Delta_X_Sign
-	lda (Ptr_Lo),y
+	sta Bob_X_Pos_Hi,x
+	sta Bob_X_Pos_Lo,x
+	sta Bob_X_Pos_Frac,x
+	lda Bob_Delta_X_Sign,x
 	bpl X_Done							; Already heading right
 	jsr Reverse_X
 	jmp X_Done
 
 ; Right wall: clamp if X_Pos > $0120 (320 - 32 = 288)
-X_Check_Right
-	ldy #Spr_X_Pos_Hi
-	lda (Ptr_Lo),y
+X_Check_Right							; A still holds X_Pos_Hi from the add above
 	cmp #$01
 	bcc X_Done							; Hi < $01, in range
 	bne X_Hit_Right						; Hi > $01, past right edge
-	ldy #Spr_X_Pos_Lo
-	lda (Ptr_Lo),y
+	lda Bob_X_Pos_Lo,x
 	cmp #$21							; Lo > $20?
 	bcc X_Done
 X_Hit_Right
 	lda #$01
-	ldy #Spr_X_Pos_Hi
-	sta (Ptr_Lo),y
+	sta Bob_X_Pos_Hi,x
 	lda #$20
-	ldy #Spr_X_Pos_Lo
-	sta (Ptr_Lo),y
+	sta Bob_X_Pos_Lo,x
 	lda #$00
-	ldy #Spr_X_Pos_Frac
-	sta (Ptr_Lo),y
-	ldy #Spr_Delta_X_Sign
-	lda (Ptr_Lo),y
+	sta Bob_X_Pos_Frac,x
+	lda Bob_Delta_X_Sign,x
 	bmi X_Done							; Already heading left
 	jsr Reverse_X
 X_Done
 
 ;--- Y motion ----------------------------------------------------------------
 	clc
-	ldy #Spr_Y_Pos_Frac
-	lda (Ptr_Lo),y
-	ldy #Spr_Delta_Y_Frac
-	adc (Ptr_Lo),y
-	ldy #Spr_Y_Pos_Frac
-	sta (Ptr_Lo),y
+	lda Bob_Y_Pos_Frac,x
+	adc Bob_Delta_Y_Frac,x
+	sta Bob_Y_Pos_Frac,x
 
-	ldy #Spr_Y_Pos
-	lda (Ptr_Lo),y
-	ldy #Spr_Delta_Y
-	adc (Ptr_Lo),y
-	ldy #Spr_Y_Pos
-	sta (Ptr_Lo),y
+	lda Bob_Y_Pos,x
+	adc Bob_Delta_Y,x
+	sta Bob_Y_Pos,x
 
-	ldy #Spr_Delta_Y_Sign
-	lda (Ptr_Lo),y
+	lda Bob_Delta_Y_Sign,x
 	bmi Y_Check_Top
 
-; Moving down: clamp if Y_Pos > $D0 (240 - 32 = 208)
+; Moving down: clamp at Y_POS_MAX (CLEAR_ROWS - 32) so the ball's bottom row is
+; still inside the area BLT_BAKGRND clears, or it would leave a permanent trail
 Y_Check_Bottom
-	ldy #Spr_Y_Pos
-	lda (Ptr_Lo),y
-	cmp #$D1
+	lda Bob_Y_Pos,x
+	cmp #Y_POS_MAX+1
 	bcc Y_Done
-	lda #$D0
-	sta (Ptr_Lo),y
+	lda #Y_POS_MAX
+	sta Bob_Y_Pos,x
 	lda #$00
-	ldy #Spr_Y_Pos_Frac
-	sta (Ptr_Lo),y
-	ldy #Spr_Delta_Y_Sign
-	lda (Ptr_Lo),y
+	sta Bob_Y_Pos_Frac,x
+	lda Bob_Delta_Y_Sign,x
 	bmi Y_Done							; Already heading up
 	jsr Reverse_Y
 	jmp Y_Done
 
-; Moving up: underflow wraps Y_Pos above $D0
+; Moving up: underflow wraps Y_Pos above Y_POS_MAX
 Y_Check_Top
-	ldy #Spr_Y_Pos
-	lda (Ptr_Lo),y
-	cmp #$D1
+	lda Bob_Y_Pos,x
+	cmp #Y_POS_MAX+1
 	bcc Y_Done
 	lda #$00
-	ldy #Spr_Y_Pos
-	sta (Ptr_Lo),y
-	ldy #Spr_Y_Pos_Frac
-	sta (Ptr_Lo),y
-	ldy #Spr_Delta_Y_Sign
-	lda (Ptr_Lo),y
+	sta Bob_Y_Pos,x
+	sta Bob_Y_Pos_Frac,x
+	lda Bob_Delta_Y_Sign,x
 	bpl Y_Done							; Already heading down
 	jsr Reverse_Y
 Y_Done
 
 ;--- Compute VBXE address and blit -------------------------------------------
 Skip_Motion								; Jump here to bypass ball motion
-	ldy #Spr_X_Pos_Lo
-	lda (Ptr_Lo),y
-	sta Reg1							; X_Pos_Lo → Calculate_200 input
-	ldy #Spr_X_Pos_Hi
-	lda (Ptr_Lo),y
-	sta Reg2							; X_Pos_Hi → Calculate_200 input
-	ldy #Spr_Y_Pos
-	lda (Ptr_Lo),y
-	sta Reg3							; Y_Pos    → Calculate_200 input
-
-	jsr Calculate_200					; → Reg4=Adr0, Reg5=Adr1, Reg6=Adr2
+	jsr Calculate_200					; Reads Bob_* via X -> Reg4=Adr0, Reg5=Adr1, Reg6=Adr2
 
 	lda Reg4
 	sta VBXE_WINDOW+$500+BLT_BALL-BLT_BALL+Dest_Adr0
@@ -529,14 +563,6 @@ Skip_Motion								; Jump here to bypass ball motion
 
 	jsr Draw_Sprite						; Wait for blitter idle then fire BLT_BALL
 
-;--- Advance Ptr to next sprite ----------------------------------------------
-	clc
-	lda Ptr_Lo
-	adc #Sprite_Size
-	sta Ptr_Lo
-	bcc No_Hi_Bump
-	inc Ptr_Hi
-No_Hi_Bump
 	inx
 	cpx Num_Sprites
 	beq Spr_Loop_Done					; All sprites done
@@ -552,80 +578,33 @@ Spr_Loop_Done
 ; Velocities read from Init_Delta_X/Y tables (unchanged).
 ;-----------------------------------------------------------------------------
 Init_Objects
-	lda #<Bobs
-	sta Ptr_Lo
-	lda #>Bobs
-	sta Ptr_Hi
 	ldx #$00
 
 Init_Spr_L
-	; X position from tables - Frac always 0, Pos_Hi always 0
-	txa
-	tay
-	lda Init_Pos_X_Lo,y
-	ldy #Spr_X_Pos_Lo
-	sta (Ptr_Lo),y
-	lda #$00
-	ldy #Spr_X_Pos_Frac
-	sta (Ptr_Lo),y
-	ldy #Spr_X_Pos_Hi
-	sta (Ptr_Lo),y
+	; Positions and velocities come from flat tables already indexed by ball number
+	lda Init_Pos_X_Lo,x
+	sta Bob_X_Pos_Lo,x
+	lda Init_Pos_Y,x
+	sta Bob_Y_Pos,x
+	lda Init_Delta_X,x
+	sta Bob_Delta_X,x
+	lda Init_Delta_X_Frac,x
+	sta Bob_Delta_X_Frac,x
+	lda Init_Delta_Y,x
+	sta Bob_Delta_Y,x
+	lda Init_Delta_Y_Frac,x
+	sta Bob_Delta_Y_Frac,x
 
-	; Y position from table - Frac always 0
-	txa
-	tay
-	lda Init_Pos_Y,y
-	ldy #Spr_Y_Pos
-	sta (Ptr_Lo),y
-	lda #$00
-	ldy #Spr_Y_Pos_Frac
-	sta (Ptr_Lo),y
-
-	; Velocity from tables, indexed directly by object number
-	txa
-	tay
-	lda Init_Delta_X,y
-	ldy #Spr_Delta_X
-	sta (Ptr_Lo),y
-
-	txa
-	tay
-	lda Init_Delta_X_Frac,y
-	ldy #Spr_Delta_X_Frac
-	sta (Ptr_Lo),y
-
-	lda #$00							; Initially moving right
-	ldy #Spr_Delta_X_Sign
-	sta (Ptr_Lo),y
-
-	txa
-	tay
-	lda Init_Delta_Y,y
-	ldy #Spr_Delta_Y
-	sta (Ptr_Lo),y
-
-	txa
-	tay
-	lda Init_Delta_Y_Frac,y
-	ldy #Spr_Delta_Y_Frac
-	sta (Ptr_Lo),y
-
-	lda #$00							; Initially moving down
-	ldy #Spr_Delta_Y_Sign
-	sta (Ptr_Lo),y
-
-	; Advance struct pointer by Sprite_Size
-	clc
-	lda Ptr_Lo
-	adc #Sprite_Size
-	sta Ptr_Lo
-	bcc No_PH_Bump
-	inc Ptr_Hi
-No_PH_Bump
+	lda #$00							; Fractions and X_Pos_Hi start at zero,
+	sta Bob_X_Pos_Frac,x				; and every ball starts moving right and down
+	sta Bob_X_Pos_Hi,x
+	sta Bob_Y_Pos_Frac,x
+	sta Bob_Delta_X_Sign,x
+	sta Bob_Delta_Y_Sign,x
 
 	inx
-	cpx Num_Sprites
-	bne Init_Spr_L
+	cpx #MAX_BALLS						; Every slot, not just Num_Sprites - the live
+	bne Init_Spr_L						; ball-count keys can reveal any of them
 	rts
 
 ;-----------------------------------------------------------------------------
@@ -730,12 +709,43 @@ Handle_Keys
 	beq Exit_Long
 	cmp #$32							; 0
 	beq Handle_0
+	cmp #$06							; + increase the ball count
+	beq Handle_Plus
+	cmp #$0E							; - decrease the ball count
+	beq Handle_Minus
+.if DBG_FRAME_CHECK
+	cmp #$28							; R reset the dropped-frame latch
+	beq Handle_Reset
+.endif
 Handle_Keys_Done						; No more keys to test
 	jmp Read_Key_Done
 
 Handle_0
 	jsr Toggle_Colour_Map				; Toggle the Colour Map (Attribute XDL) on/off
 	jmp Read_Key_Done
+
+Handle_Plus
+	lda Num_Sprites
+	cmp #MAX_BALLS
+	bcs Read_Key_Done					; Already at the array capacity
+	inc Num_Sprites
+	jmp Read_Key_Done
+
+Handle_Minus
+	lda Num_Sprites
+	cmp #$02
+	bcc Read_Key_Done					; Never let it reach zero - the loops test
+	dec Num_Sprites						; equality, so 0 would run 256 iterations
+	jmp Read_Key_Done
+
+.if DBG_FRAME_CHECK
+Handle_Reset
+	lda #$00
+	sta Frame_Drops						; Clear the sticky yellow
+	sta Frame_Late
+	sta COLOR4
+	jmp Read_Key_Done
+.endif
 
 Read_Key_Done
 	lda #$FF
@@ -811,45 +821,34 @@ Setup_Cmap2_L2
 
 ;-----------------------------------------------------------------------------
 ; Calculate_200
-;   Reg1 = X_Pos_L	Object Horizontal Position (Col)
-;   Reg2 = X_Pos_H	Object Horizontal Position (Col)
-;   Reg3 = Y_Pos	Object Vertical Position   (Row)
+;   X    = ball index; X_Pos_Lo/Hi and Y_Pos are read straight from the Bob_*
+;          arrays, so this routine is specific to the ball loop (its only caller)
+;   Reg7 = backbuffer Adr2, computed once per frame by Set_Positions
 ;   Reg4 = Adr0	   VBXE Blitter Address
 ;   Reg5 = Adr1	   VBXE Blitter Address
 ;   Reg6 = Adr2	   VBXE Blitter Address
-;   Reg7 = XDL destination high byte (either 0 or 2)
 ;-----------------------------------------------------------------------------
 Calculate_200
-; Because we are double buffering, we need to write to the backbuffer
-; So load the buffer address from the XDL but use the other one
-	lda VBXE_MA_BSEL
-	pha									; Store it
-
-	lda #$80							; Bank $00 with global enable (XDL lives in bank $00)
-	sta VBXE_MA_BSEL
-
-	lda VBXE_WINDOW + $405				; XDL Adr2 (byte 5 of XDL at VBXE_WINDOW+$400)
-	eor #$06							; Flip between $02 ($020000) and $04 ($040000)
-	sta Reg7							; Reg7 = backbuffer Adr2
+; The VBXE window is already bank $00 with global enable - Set_Positions sets
+; VBXE_MA_BSEL before the loop and only clears it once every ball is drawn.
 
 ; Calculate the start of VRAM (Reg4, Reg5, Reg6) for the given Y-Pos
 	lda #$00
 	sta Reg4							; Reset to initial value
 	sta Reg6							; Reset to initial value
-	lda Reg3							; Y_Pos
+	lda Bob_Y_Pos,x						; Y_Pos
 	bpl Skip_Reg6						; If A <= $7F Reg6 will be 0
-	ldy #$01							; Else
-	sty Reg6							; Reg6 = 1
+	inc Reg6							; Else Reg6 = 1 (leaves A and Y alone)
 Skip_Reg6
 	asl									; Multiply by 2
 	sta Reg5
 
 ; Now move into that line in VRAM based on the X-Position
 	clc									; Prepare to add
-	lda Reg1							; X_Pos_L
+	lda Bob_X_Pos_Lo,x					; X_Pos_L
 	adc Reg4							; Add Adr0
 	sta Reg4							; Store it
-	lda Reg2							; X_Pos_H
+	lda Bob_X_Pos_Hi,x					; X_Pos_H
 	adc Reg5							; Add Adr1
 	sta Reg5							; Store it
 	lda #$00
@@ -861,10 +860,7 @@ Skip_Reg6
 	lda Reg7
 	adc Reg6							; Carry flag weill NEVER be set, as value will only ever be 0-1 or 2-3
 	sta Reg6
-Calculate_200_End						; This takes on average $37(55) cycles, code is $22(34) bytes TODO: Calculate new cycle time based on code to handle double buffering
-	pla
-	sta VBXE_MA_BSEL					; Restore to initial value
-
+Calculate_200_End						; TODO: Re-measure - the bank save/restore and the XDL read are now hoisted into Set_Positions
 	rts
 
 ;-----------------------------------------------------------------------------
@@ -984,28 +980,40 @@ Init_Delta_X
 	dta $01,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03
 	dta $00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03
 	dta $00,$01,$02,$03,$00
+	dta $00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03	; Objs $25-$34 (test harness)
+	dta $00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02	; Objs $35-$3F (test harness)
 Init_Delta_X_Frac
 	dta $00,$40,$80,$C0,$10,$50,$90,$D0,$20,$60,$A0,$E0,$30,$70,$B0,$F0
 	dta $40,$80,$C0,$00,$50,$90,$D0,$10,$60,$A0,$E0,$20,$70,$B0,$F0,$30
 	dta $80,$C0,$00,$40,$90
+	dta $00,$30,$60,$90,$C0,$F0,$20,$50,$80,$B0,$E0,$10,$40,$70,$A0,$D0	; Objs $25-$34 (test harness)
+	dta $00,$30,$60,$90,$C0,$F0,$20,$50,$80,$B0,$E0	; Objs $35-$3F (test harness)
 Init_Delta_Y
 	dta $06,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$01,$01,$02,$03,$00
 	dta $01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00
 	dta $01,$02,$03,$00,$01
+	dta $02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00,$01	; Objs $25-$34 (test harness)
+	dta $02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00	; Objs $35-$3F (test harness)
 Init_Delta_Y_Frac
 	dta $00,$60,$A0,$E0,$30,$70,$B0,$F0,$40,$80,$C0,$00,$50,$90,$D0,$10
 	dta $60,$A0,$E0,$20,$70,$B0,$F0,$30,$80,$C0,$00,$40,$90,$D0,$10,$50
 	dta $A0,$E0,$20,$60,$B0
+	dta $18,$48,$78,$A8,$D8,$08,$38,$68,$98,$C8,$F8,$28,$58,$88,$B8,$E8	; Objs $25-$34 (test harness)
+	dta $18,$48,$78,$A8,$D8,$08,$38,$68,$98,$C8,$F8	; Objs $35-$3F (test harness)
 
 ; Standard Atari ROM font for 3 and 7, laid out by hand, then auto-generated tables based on my grid
 Init_Pos_X_Lo
 	dta $12,$24,$36,$48,$5A,$6C,$A2,$B4,$C6,$D8,$EA,$FC,$48,$5A,$A2,$EA	; Objs $00-$0F
 	dta $FC,$36,$48,$D8,$EA,$48,$5A,$C6,$D8,$12,$24,$5A,$6C,$B4,$C6,$24	; Objs $10-$1F
 	dta $36,$48,$5A,$B4,$C6				; Objs $20-$24
+	dta $08,$23,$3E,$59,$74,$8F,$AA,$C5,$E0,$12,$2D,$48,$63,$7E,$99,$B4	; Objs $25-$34 (test harness)
+	dta $CF,$EA,$1C,$37,$52,$6D,$88,$A3,$BE,$D9,$0B	; Objs $35-$3F (test harness)
 Init_Pos_Y
 	dta $0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$1A,$1A,$1A,$1A	; Objs $00-$0F
 	dta $1A,$27,$27,$27,$27,$34,$34,$34,$34,$41,$41,$41,$41,$41,$41,$4E	; Objs $10-$1F
 	dta $4E,$4E,$4E,$4E,$4E				; Objs $20-$24
+	dta $10,$4C,$7E,$B0,$2E,$60,$92,$C4,$42,$74,$A6,$24,$56,$88,$BA,$38	; Objs $25-$34 (test harness)
+	dta $6A,$9C,$10,$4C,$7E,$B0,$2E,$60,$92,$C4,$42	; Objs $35-$3F (test harness)
 
 	org $5900							; Ensure the Display_List is page aligned
 Display_List							; 16 * 15 = 240 lines
