@@ -68,10 +68,6 @@
 .var SDLSTH_OLD			.byte = $486	; Save the Display List Pointer
 .var Video_Flag			.byte = $487	; PAL = 0, NTSC = 1
 .var Colour_Map_On		.byte = $488	; Non-zero when XDL_Attribute (Colour Map) is the active XDL
-.var COLOR4_OLD			.byte = $489	; Save COLOR4 (border)
-.var Frame_Mark			.byte = $48A	; Last RTCLOK+2 sample
-.var Frame_Late			.byte = $48B	; Non-zero if the last frame overran
-.var Frame_Drops		.byte = $48C	; Frames dropped since reset (saturates at $FF)
 
 ;-----------------------------------------------------------------------------
 ; Rasta Music Tracker Stuff
@@ -93,10 +89,12 @@ module									; Include music RMT module
 	.endp
 
 ; Ball arrays (struct-of-arrays), indexed by the ball number in X.
-; MAX_BALLS ($40) slots per field.  The base is page-aligned and the stride
+; MAX_SPRITES_PAL balls, but Bob_Stride is $40 (64), NOT $30 (48).  That looks
+; like 176 wasted bytes and is deliberate: 64 divides 256, so no array can ever
+; straddle a page boundary and lda abs,x stays at 4 cycles on every field.  A
+; stride of $30 would put two of the eleven arrays across a page.  The base is
 ; divides 256, so no array can ever straddle a page boundary - lda abs,x on
 ; any field costs 4 cycles for every ball.  Occupies $5500-$57BF.
-.def	MAX_BALLS						= $40	; Array capacity / live ball-count cap
 .def	Bob_Stride						= $40	; Bytes per field array
 Bobs	equ	$5500						; Base of the ball field arrays
 
@@ -126,14 +124,6 @@ Bob_Delta_Y			equ	Bobs+[$0A*Bob_Stride]	; $5780  Y velocity integer
 
 ; Temp debug stuff
 .def	DBG_SINGLE_STEP					= $00	; 00 = False else true
-.def	DBG_FRAME_CHECK					= $01	; 00 = False else true.  Mutually exclusive
-											; with DBG_SINGLE_STEP - the space-wait makes
-											; every frame read as late
-.def	DBG_TINY_BALL					= $00	; 01 = shrink the ball blit to 8x8.  Unloads the
-											; blitter 16x while leaving every CPU instruction
-											; in Spr_Loop byte-identical, so the ball ceiling
-											; then tells you which resource is the wall.
-											; DIAGNOSTIC ONLY - delete once it has answered.
 .def	MAX_SPRITES_PAL					= $30	; (Previously was $25!)
 .def	MAX_SPRITES_NTSC				= $18
 
@@ -163,8 +153,8 @@ Bob_Delta_Y			equ	Bobs+[$0A*Bob_Stride]	; $5780  Y velocity integer
 ; Title Screen
 .def	V_0								= $11	; 1 (Screen code used for Version in loading screen)
 .def	V_1								= $10	; 0 (Screen code used for Version in loading screen)
-.def	V_2								= $15	; 5 (Screen code used for Version in loading screen)
-.def	V_3								= $61	; a  (Screen code used for Version in loading screen)
+.def	V_2								= $16	; 6 (Screen code used for Version in loading screen)
+.def	V_3								= $00	;    (Screen code used for Version in loading screen)
 
 ;-----------------------------------------------------------------------------
 ; VBXE Helpers
@@ -203,9 +193,6 @@ Cleanup_Exit
 
 	lda COLOR2_OLD
 	sta COLOR2							; Restore COLOR2
-
-	lda COLOR4_OLD
-	sta COLOR4							; Restore COLOR4 (border)
 
 	lda SDLSTL_OLD
 	sta SDLSTL							; Restore SDLSTL
@@ -256,9 +243,6 @@ main
 
 	lda #$01
 	sta Colour_Map_On					; XDL_Attribute (Colour Map on) is the active XDL
-
-	lda COLOR4
-	sta COLOR4_OLD						; Save the border - the frame check writes it
 
 	lda #$00
 	sta COLOR2							; Set Playfield Black
@@ -319,14 +303,6 @@ Set_Do_Motion
 	lda #$01
 	sta Do_Motion						; Allow positions to update when blitting
 
-.if DBG_FRAME_CHECK
-	lda RTCLOK+2
-	sta Frame_Mark						; Seed the frame-slip check
-	lda #$00
-	sta Frame_Drops
-	sta Frame_Late
-	sta COLOR4							; Border black = on time, never dropped
-.endif
 
 Main_Loop
 	lda #$00
@@ -342,41 +318,6 @@ Main_Loop
 W_Synch_0
 	jsr Wait_For_Sync					; Wait for VSYNC, Q quits
 
-.if DBG_FRAME_CHECK
-; Frame-slip check.  Wait_For_Sync syncs on VCOUNT bit 7 (scanline 256) and so
-; cannot see an overrun - it just waits for the next scanline 256 and silently
-; loses a frame.  RTCLOK+2 is the OS VBI's own 50Hz tick and is the ground truth.
-; The VBI fires around scanline 249, before our sync point, so this sample is
-; race-free.  Delta of 1 = on time, N = we dropped N-1 frames.
-	lda RTCLOK+2
-	tay									; Keep the raw sample
-	sec
-	sbc Frame_Mark						; Frames elapsed since the previous sync
-	sty Frame_Mark						; Re-mark for next time
-	cmp #$02
-	bcc Frame_On_Time					; Delta 1 - we made it
-	sta Frame_Late
-	lda Frame_Drops
-	cmp #$FF
-	beq Frame_Red						; Saturate, do not wrap
-	inc Frame_Drops
-Frame_Red
-	lda #$32							; Red - this frame overran
-	sta COLOR4
-	jmp Frame_Show
-Frame_On_Time
-	lda #$00
-	sta Frame_Late
-	lda Frame_Drops
-	beq Frame_Black
-	lda #$1C							; Yellow - on time now, but dropped earlier
-	sta COLOR4
-	jmp Frame_Show
-Frame_Black
-	lda #$00							; Black - clean since the last reset
-	sta COLOR4
-Frame_Show
-.endif
 
 	lda #$FF
 	sta CH
@@ -603,8 +544,8 @@ Init_Spr_L
 	sta Bob_Delta_Y_Sign,x
 
 	inx
-	cpx #MAX_BALLS						; Every slot, not just Num_Sprites - the live
-	bne Init_Spr_L						; ball-count keys can reveal any of them
+	cpx #MAX_SPRITES_PAL				; Every slot, not just Num_Sprites, so NTSC
+	bne Init_Spr_L						; still initialises the ones it does not draw
 	rts
 
 ;-----------------------------------------------------------------------------
@@ -709,43 +650,12 @@ Handle_Keys
 	beq Exit_Long
 	cmp #$32							; 0
 	beq Handle_0
-	cmp #$06							; + increase the ball count
-	beq Handle_Plus
-	cmp #$0E							; - decrease the ball count
-	beq Handle_Minus
-.if DBG_FRAME_CHECK
-	cmp #$28							; R reset the dropped-frame latch
-	beq Handle_Reset
-.endif
 Handle_Keys_Done						; No more keys to test
 	jmp Read_Key_Done
 
 Handle_0
 	jsr Toggle_Colour_Map				; Toggle the Colour Map (Attribute XDL) on/off
 	jmp Read_Key_Done
-
-Handle_Plus
-	lda Num_Sprites
-	cmp #MAX_BALLS
-	bcs Read_Key_Done					; Already at the array capacity
-	inc Num_Sprites
-	jmp Read_Key_Done
-
-Handle_Minus
-	lda Num_Sprites
-	cmp #$02
-	bcc Read_Key_Done					; Never let it reach zero - the loops test
-	dec Num_Sprites						; equality, so 0 would run 256 iterations
-	jmp Read_Key_Done
-
-.if DBG_FRAME_CHECK
-Handle_Reset
-	lda #$00
-	sta Frame_Drops						; Clear the sticky yellow
-	sta Frame_Late
-	sta COLOR4
-	jmp Read_Key_Done
-.endif
 
 Read_Key_Done
 	lda #$FF
@@ -977,43 +887,33 @@ Setup_Colours_L1
 ; X: integer $00-$03 cycles with period 4; frac rotates +$40 each int group
 ; Y: integer offset by 1 ($01-$03,$00); frac rotates +$20 relative to X → no correlation
 Init_Delta_X
-	dta $01,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03
-	dta $00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03
-	dta $00,$01,$02,$03,$00
-	dta $00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03	; Objs $25-$34 (test harness)
-	dta $00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02	; Objs $35-$3F (test harness)
+	dta $01,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03	; Objs $00-$0F
+	dta $00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03	; Objs $10-$1F
+	dta $00,$01,$02,$03,$00,$00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02	; Objs $20-$2F
 Init_Delta_X_Frac
-	dta $00,$40,$80,$C0,$10,$50,$90,$D0,$20,$60,$A0,$E0,$30,$70,$B0,$F0
-	dta $40,$80,$C0,$00,$50,$90,$D0,$10,$60,$A0,$E0,$20,$70,$B0,$F0,$30
-	dta $80,$C0,$00,$40,$90
-	dta $00,$30,$60,$90,$C0,$F0,$20,$50,$80,$B0,$E0,$10,$40,$70,$A0,$D0	; Objs $25-$34 (test harness)
-	dta $00,$30,$60,$90,$C0,$F0,$20,$50,$80,$B0,$E0	; Objs $35-$3F (test harness)
+	dta $00,$40,$80,$C0,$10,$50,$90,$D0,$20,$60,$A0,$E0,$30,$70,$B0,$F0	; Objs $00-$0F
+	dta $40,$80,$C0,$00,$50,$90,$D0,$10,$60,$A0,$E0,$20,$70,$B0,$F0,$30	; Objs $10-$1F
+	dta $80,$C0,$00,$40,$90,$00,$30,$60,$90,$C0,$F0,$20,$50,$80,$B0,$E0	; Objs $20-$2F
 Init_Delta_Y
-	dta $06,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$01,$01,$02,$03,$00
-	dta $01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00
-	dta $01,$02,$03,$00,$01
-	dta $02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00,$01	; Objs $25-$34 (test harness)
-	dta $02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00	; Objs $35-$3F (test harness)
+	dta $06,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$01,$01,$02,$03,$00	; Objs $00-$0F
+	dta $01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00	; Objs $10-$1F
+	dta $01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00,$01,$02,$03,$00	; Objs $20-$2F
 Init_Delta_Y_Frac
-	dta $00,$60,$A0,$E0,$30,$70,$B0,$F0,$40,$80,$C0,$00,$50,$90,$D0,$10
-	dta $60,$A0,$E0,$20,$70,$B0,$F0,$30,$80,$C0,$00,$40,$90,$D0,$10,$50
-	dta $A0,$E0,$20,$60,$B0
-	dta $18,$48,$78,$A8,$D8,$08,$38,$68,$98,$C8,$F8,$28,$58,$88,$B8,$E8	; Objs $25-$34 (test harness)
-	dta $18,$48,$78,$A8,$D8,$08,$38,$68,$98,$C8,$F8	; Objs $35-$3F (test harness)
+	dta $00,$60,$A0,$E0,$30,$70,$B0,$F0,$40,$80,$C0,$00,$50,$90,$D0,$10	; Objs $00-$0F
+	dta $60,$A0,$E0,$20,$70,$B0,$F0,$30,$80,$C0,$00,$40,$90,$D0,$10,$50	; Objs $10-$1F
+	dta $A0,$E0,$20,$60,$B0,$18,$48,$78,$A8,$D8,$08,$38,$68,$98,$C8,$F8	; Objs $20-$2F
 
-; Standard Atari ROM font for 3 and 7, laid out by hand, then auto-generated tables based on my grid
+; The balls spell out the ball count on the startup screen.  Generated by
+; tools/gen_layout.py from Assets/layout48.txt - edit the ASCII grid there and
+; re-run the tool rather than hand-editing these two tables.
 Init_Pos_X_Lo
-	dta $12,$24,$36,$48,$5A,$6C,$A2,$B4,$C6,$D8,$EA,$FC,$48,$5A,$A2,$EA	; Objs $00-$0F
-	dta $FC,$36,$48,$D8,$EA,$48,$5A,$C6,$D8,$12,$24,$5A,$6C,$B4,$C6,$24	; Objs $10-$1F
-	dta $36,$48,$5A,$B4,$C6				; Objs $20-$24
-	dta $08,$23,$3E,$59,$74,$8F,$AA,$C5,$E0,$12,$2D,$48,$63,$7E,$99,$B4	; Objs $25-$34 (test harness)
-	dta $CF,$EA,$1C,$37,$52,$6D,$88,$A3,$BE,$D9,$0B	; Objs $35-$3F (test harness)
+	dta $5A,$6C,$B4,$C6,$D8,$EA,$5A,$6C,$A2,$FC,$48,$5A,$6C,$A2,$FC,$36	; Objs $00-$0F
+	dta $5A,$6C,$A2,$FC,$24,$5A,$6C,$B4,$C6,$D8,$EA,$24,$36,$48,$5A,$6C	; Objs $10-$1F
+	dta $A2,$FC,$5A,$6C,$A2,$FC,$5A,$6C,$A2,$FC,$5A,$6C,$B4,$C6,$D8,$EA	; Objs $20-$2F
 Init_Pos_Y
-	dta $0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$0D,$1A,$1A,$1A,$1A	; Objs $00-$0F
-	dta $1A,$27,$27,$27,$27,$34,$34,$34,$34,$41,$41,$41,$41,$41,$41,$4E	; Objs $10-$1F
-	dta $4E,$4E,$4E,$4E,$4E				; Objs $20-$24
-	dta $10,$4C,$7E,$B0,$2E,$60,$92,$C4,$42,$74,$A6,$24,$56,$88,$BA,$38	; Objs $25-$34 (test harness)
-	dta $6A,$9C,$10,$4C,$7E,$B0,$2E,$60,$92,$C4,$42	; Objs $35-$3F (test harness)
+	dta $34,$34,$34,$34,$34,$34,$41,$41,$41,$41,$4E,$4E,$4E,$4E,$4E,$5B	; Objs $00-$0F
+	dta $5B,$5B,$5B,$5B,$68,$68,$68,$68,$68,$68,$68,$75,$75,$75,$75,$75	; Objs $10-$1F
+	dta $75,$75,$82,$82,$82,$82,$8F,$8F,$8F,$8F,$9C,$9C,$9C,$9C,$9C,$9C	; Objs $20-$2F
 
 	org $5900							; Ensure the Display_List is page aligned
 Display_List							; 16 * 15 = 240 lines

@@ -5,13 +5,8 @@ BLT_BALL
 	dta $00,$00,$02						; Destination address
 	dta $00,$02							; Destination step y
 	dta $01								; Destination step x
-.if DBG_TINY_BALL
-	dta $07,$00							; Width  (8 - DBG_TINY_BALL diagnostic)
-	dta $07								; Height (8 - DBG_TINY_BALL diagnostic)
-.else
 	dta $1F,$00							; Width
 	dta $1F								; Height
-.endif
 	dta $FF								; And mask
 	dta $00								; Xor mask
 	dta $00								; Collision and mask

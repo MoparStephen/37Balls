@@ -1,0 +1,27 @@
+; Startup image for 37Balls - the balls themselves spell out the ball count.
+; '#' places a ball, anything else leaves the cell empty.  Lines starting with
+; ';' are ignored, so you can sketch alternatives above and swap them in.
+;
+; 12 columns: cols 0-5 are the left digit, cols 6-11 the right, with a two-
+; column gap between them on screen (22 px clear).  Any number of rows works -
+; the tool centres the image vertically for whatever it finds.  9 rows is the
+; even one: identical 52 px margins top and bottom.
+;
+; Balls are 32 px but the steps are 18 (X) and 13 (Y), so neighbours overlap
+; heavily - that is what makes the strokes read as solid.  A 1-cell-wide stroke
+; is already a fat line on screen; 2-cell-wide is very heavy.
+;
+; The ball count must come to MAX_SPRITES_PAL or the tool refuses to emit:
+;     python tools/gen_layout.py Assets/layout48.txt --count 48
+;
+;    "4"      "8"
+; <-cols0-5-><-cols6-11->
+....##.####.
+....###....#
+...####....#
+..#.###....#
+.#..##.####.
+.######....#
+....###....#
+....###....#
+....##.####.
